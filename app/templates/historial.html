@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historial - Sistema de Inventario</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/historial.css">
+</head>
+<body>
+    <div class="container-fluid">
+        <!-- Header -->
+        <div class="row mb-4 align-items-center">
+            <div class="col-md-6">
+                <h2 style="color: var(--primary-color)">
+                    <i class="fas fa-history me-2"></i>Historial de Cambios
+                </h2>
+            </div>
+            <div class="col-md-6 text-end">
+                <button class="btn btn-filter me-2" onclick="exportarHistorial()">
+                    <i class="fas fa-file-export me-2"></i>Exportar
+                </button>
+            </div>
+        </div>
+
+        <!-- Filtros -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="search-box">
+                            <i class="fas fa-search"></i>
+                            <input type="text" class="form-control" id="searchInput" placeholder="Buscar en el historial...">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" id="tipoFilter">
+                            <option value="">Todos los tipos</option>
+                            <option value="Entrada">Entradas</option>
+                            <option value="Salida">Salidas</option>
+                            <option value="Cambio">Cambios</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <input type="date" class="form-control" id="dateFilter">
+                    </div>
+                    <div class="col-md-2">
+                        <button class="btn btn-filter w-100" onclick="aplicarFiltros()">
+                            Filtrar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Timeline -->
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-clock me-2"></i>Línea de Tiempo
+            </div>
+            <div class="card-body">
+                <div class="timeline">
+                    {% for item in history %}
+                    <div class="timeline-item" data-tipo="{{ item.tipo }}">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="timeline-date">
+                                {{ item.fecha.strftime('%d/%m/%Y %H:%M') }}
+                            </span>
+                            <span class="timeline-badge badge-{{ item.tipo.lower() }}">
+                                {{ item.tipo }}
+                            </span>
+                        </div>
+                        <h5 class="mb-1">{{ item.item }}</h5>
+                        <p class="mb-1">
+                            <strong>Usuario:</strong> {{ item.usuario }}
+                        </p>
+                        <p class="mb-0 text-muted">
+                            {{ item.detalles }}
+                        </p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function aplicarFiltros() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const tipoFiltro = document.getElementById('tipoFilter').value;
+            const fechaFiltro = document.getElementById('dateFilter').value;
+
+            const items = document.querySelectorAll('.timeline-item');
+
+            items.forEach(item => {
+                const tipo = item.dataset.tipo;
+                const texto = item.textContent.toLowerCase();
+                const fecha = item.querySelector('.timeline-date').textContent;
+
+                let mostrar = true;
+
+                if (searchTerm && !texto.includes(searchTerm)) {
+                    mostrar = false;
+                }
+
+                if (tipoFiltro && tipo !== tipoFiltro) {
+                    mostrar = false;
+                }
+
+                if (fechaFiltro && !fecha.includes(fechaFiltro)) {
+                    mostrar = false;
+                }
+
+                item.style.display = mostrar ? 'block' : 'none';
+            });
+        }
+
+        async function exportarHistorial() {
+            try {
+                const response = await fetch('/api/export/historial');
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'historial.xlsx';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                } else {
+                    const error = await response.json();
+                    alert('Error al exportar: ' + error.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al exportar el historial');
+            }
+        }
+
+        // Limpiar filtros al cargar
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('tipoFilter').value = '';
+            document.getElementById('dateFilter').value = '';
+        });
+    </script>
+</body>
+</html>

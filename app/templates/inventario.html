@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventario - Sistema de Inventario</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/view.css">
+    <style>
+        /* Estilos para vista agrupada */
+        .group-card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-bottom: 1rem;
+        }
+
+        .group-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .group-header {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            color: var(--primary-color);
+            border-radius: 15px 15px 0 0;
+            padding: 1.5rem;
+            cursor: pointer;
+            border-left: 5px solid var(--primary-color);
+        }
+
+        .group-header:hover {
+            background: linear-gradient(135deg, #e9ecef, #dee2e6);
+        }
+
+        .group-body {
+            padding: 1.5rem;
+        }
+
+        .stock-badge {
+            background: var(--primary-color);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 25px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .serial-list {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .serial-item {
+            display: inline-block;
+            background: white;
+            padding: 0.3rem 0.7rem;
+            margin: 0.2rem;
+            border-radius: 15px;
+            border: 1px solid #dee2e6;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        /* NUEVO: Estilo para números de serie usados (stock 0) */
+        .serial-item.serial-used {
+            border-left: 3px solid #dc3545;
+            background: #f8f9fa;
+            color: #6c757d;
+            position: relative;
+        }
+
+        .serial-item.serial-used:after {
+            content: " (Usado)";
+            font-size: 0.75rem;
+            color: #dc3545;
+            font-weight: 500;
+        }
+
+        .serial-item:hover {
+            background: var(--primary-color);
+            color: white;
+            transform: scale(1.05);
+            box-shadow: 0 2px 8px rgba(106, 11, 147, 0.3);
+        }
+
+        /* Hover específico para items usados */
+        .serial-item.serial-used:hover {
+            background: #dc3545;
+            color: white;
+            border-left-color: #dc3545;
+        }
+
+        .serial-item.serial-used:hover:after {
+            content: " (Usado)";
+            color: white;
+        }
+
+        .toggle-btn {
+            border-radius: 25px;
+            padding: 0.5rem 1.5rem;
+            border: 2px solid var(--primary-color);
+            background: white;
+            color: var(--primary-color);
+            transition: all 0.3s;
+            text-decoration: none;
+        }
+
+        .toggle-btn.active {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .expand-btn {
+            background: none;
+            border: none;
+            color: var(--primary-color);
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+
+        .expand-btn.expanded {
+            transform: rotate(180deg);
+        }
+
+        .cost-info {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 10px;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        /* Header del inventario */
+        .inventory-header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 2rem 2.5rem;
+            border-radius: 15px;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Botones de vista */
+        .view-toggle {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 25px;
+            padding: 0.25rem;
+            display: inline-flex;
+            margin-bottom: 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .view-toggle .btn {
+            border-radius: 20px;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            margin: 0 0.125rem;
+            transition: all 0.3s ease;
+            color: white;
+            background: transparent;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .view-toggle .btn.active {
+            background: white;
+            color: var(--primary-color);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            transform: translateY(-1px);
+        }
+
+        .view-toggle .btn:hover:not(.active) {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        /* Botones de acción */
+        .desktop-actions .btn {
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .desktop-actions .btn:hover {
+            background: white;
+            color: var(--primary-color);
+            border-color: white;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        /* Filtros */
+        .filters-card {
+            background: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 1.5rem;
+        }
+
+        .filter-toggle {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 0.75rem 1rem;
+            width: 100%;
+            margin-bottom: 1rem;
+            display: none;
+        }
+
+        .filter-collapse {
+            display: block;
+        }
+
+        /* Vista individual móvil */
+        .mobile-items-view {
+            display: none;
+        }
+
+        .item-card-mobile {
+            background: white;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-left: 4px solid var(--primary-color);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        /* NUEVO: Estilo para items usados (stock 0) en móvil */
+        .item-card-mobile.item-used {
+            border-left: 4px solid #dc3545;
+        }
+
+        .item-card-mobile:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+
+        .item-header-mobile {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 0.75rem;
+        }
+
+        .item-title-mobile {
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 0.25rem;
+            font-size: 1rem;
+        }
+
+        .item-id-mobile {
+            font-size: 0.8rem;
+            color: #666;
+        }
+
+        .item-details-mobile {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+
+        .detail-item-mobile {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .detail-label-mobile {
+            font-size: 0.75rem;
+            color: #666;
+            margin-bottom: 0.125rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .detail-value-mobile {
+            font-weight: 500;
+            color: #333;
+        }
+
+        .item-actions-mobile {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: flex-end;
+            padding-top: 0.75rem;
+            border-top: 1px solid #eee;
+        }
+
+        .btn-mobile {
+            padding: 0.4rem 0.8rem;
+            font-size: 0.8rem;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-mobile.btn-view {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .btn-mobile.btn-edit {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .btn-mobile:hover {
+            transform: scale(1.05);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        /* NUEVO: Estilos para items usados (stock 0) en tabla de escritorio */
+        .table tbody tr.item-used {
+            border-left: 4px solid #dc3545;
+        }
+
+        /* NUEVO: Estilos para grupos agotados */
+        .group-card.group-used .group-header {
+            border-left: 5px solid #dc3545;
+        }
+
+        /* Responsive */
+        @media (min-width: 769px) {
+            .inventory-header {
+                padding: 1.5rem 2rem;
+            }
+            
+            .inventory-header h2 {
+                font-size: 1.75rem;
+                font-weight: 600;
+                margin-bottom: 0;
+            }
+            
+            .view-toggle {
+                margin-right: 1.5rem;
+            }
+            
+            .desktop-actions {
+                display: flex;
+                gap: 0.75rem;
+                align-items: center;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .inventory-header {
+                padding: 1rem;
+                text-align: center;
+            }
+            
+            .inventory-header h2 {
+                font-size: 1.5rem;
+                margin-bottom: 1rem;
+            }
+            
+            .view-toggle {
+                display: flex;
+                width: 100%;
+                margin-bottom: 1rem;
+            }
+            
+            .view-toggle .btn {
+                flex: 1;
+                padding: 0.5rem;
+                font-size: 0.9rem;
+            }
+            
+            .desktop-actions {
+                display: none;
+            }
+            
+            .filters-card {
+                padding: 1rem;
+            }
+            
+            .filter-toggle {
+                display: block;
+            }
+            
+            .filter-collapse {
+                display: none;
+            }
+            
+            .filter-collapse.show {
+                display: block;
+            }
+
+            .table-responsive {
+                display: none !important;
+            }
+            
+            .mobile-items-view {
+                display: block;
+            }
+            
+            .item-details-mobile {
+                grid-template-columns: 1fr;
+                gap: 0.5rem;
+            }
+            
+            .detail-item-mobile {
+                padding-bottom: 0.5rem;
+                border-bottom: 1px solid #f0f0f0;
+            }
+            
+            .detail-item-mobile:last-child {
+                border-bottom: none;
+                padding-bottom: 0;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .item-card-mobile {
+                padding: 0.75rem;
+                margin-bottom: 0.5rem;
+            }
+            
+            .item-title-mobile {
+                font-size: 0.9rem;
+            }
+            
+            .item-actions-mobile {
+                flex-direction: column;
+            }
+            
+            .btn-mobile {
+                width: 100%;
+                margin-bottom: 0.25rem;
+            }
+            
+            .btn-mobile:last-child {
+                margin-bottom: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        {% if error_message %}
+        <div class="alert alert-danger" role="alert">
+            {{ error_message }}
+        </div>
+        {% endif %}
+
+        <!-- Header del inventario -->
+        <div class="inventory-header">
+            <div class="row align-items-center">
+                <div class="col-12 col-lg-6">
+                    <h2 class="mb-0">
+                        <i class="fas fa-boxes me-3"></i>
+                        Inventario {{ 'Agrupado' if view_mode == 'grouped' else 'Individual' }}
+                    </h2>
+                </div>
+                <div class="col-12 col-lg-6 mt-3 mt-lg-0">
+                    <div class="d-flex justify-content-lg-end justify-content-center align-items-center flex-wrap">
+                        <!-- Botones de vista -->
+                        <div class="view-toggle">
+                            <a href="?view=grouped&search={{ search }}&category={{ selected_category }}&status={{ selected_status }}" 
+                               class="btn {{ 'active' if view_mode == 'grouped' else '' }}">
+                                <i class="fas fa-layer-group me-2"></i>Agrupado
+                            </a>
+                            <a href="?view=individual&search={{ search }}&category={{ selected_category }}&status={{ selected_status }}" 
+                               class="btn {{ 'active' if view_mode == 'individual' else '' }}">
+                                <i class="fas fa-list me-2"></i>Individual
+                            </a>
+                        </div>
+                        
+                        <!-- Botones de acción para escritorio -->
+                        <div class="desktop-actions">
+                            <button class="btn" id="exportButton">
+                                <i class="fas fa-file-export me-2"></i>Exportar
+                            </button>
+                            <button class="btn" id="printButton">
+                                <i class="fas fa-print me-2"></i>Imprimir
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filtros -->
+        <div class="filters-card">
+            <!-- Botón toggle para móvil -->
+            <button class="filter-toggle" type="button" onclick="toggleFilters()">
+                <i class="fas fa-filter me-2"></i>Filtros
+                <i class="fas fa-chevron-down float-end" id="filterIcon"></i>
+            </button>
+            
+            <!-- Formulario de filtros -->
+            <div class="filter-collapse" id="filtersContent">
+                <form method="GET" class="row g-3">
+                    <input type="hidden" name="view" value="{{ view_mode }}">
+                    
+                    <div class="col-md-3 col-12">
+                        <input type="text" class="form-control" name="search" id="searchInput"
+                               placeholder="Buscar por ID o nombre..." 
+                               value="{{ search }}">
+                    </div>
+                    
+                    <div class="col-md-2 col-6">
+                        <select class="form-select" name="category" id="categorySelect">
+                            <option value="">Categoría</option>
+                            {% for category in categories %}
+                            <option value="{{ category.ID }}" 
+                                    {% if selected_category == category.ID|string %}selected{% endif %}>
+                                {{ category.Name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-2 col-6">
+                        <select class="form-select" name="status" id="statusSelect">
+                            <option value="">Estado</option>
+                            {% for status in statuses %}
+                            <option value="{{ status.ID }}"
+                                    {% if selected_status == status.ID|string %}selected{% endif %}>
+                                {{ status.Name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-2 col-12">
+                        <select class="form-select" name="items_per_page" id="itemsPerPage">
+                            <option value="10">10 por página</option>
+                            <option value="25">25 por página</option>
+                            <option value="50">50 por página</option>
+                            <option value="100">100 por página</option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-3 col-12">
+                        <button type="submit" class="btn btn-primary w-100" id="filterButton">
+                            <i class="fas fa-search me-2"></i>Aplicar Filtros
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Contenido según vista -->
+        {% if view_mode == 'grouped' %}
+            <!-- VISTA AGRUPADA -->
+            {% if groups %}
+                <div class="mb-3">
+                    <small class="text-muted">
+                        Mostrando {{ groups|length }} grupo(s) | 
+                        Total items: {{ groups|sum(attribute='total_items') }}
+                    </small>
+                </div>
+
+                {% for group in groups %}
+                <div class="group-card {{ 'group-used' if group.total_stock == 0 else '' }}">
+                    <div class="group-header" onclick="toggleGroup({{ loop.index0 }})">
+                        <div class="row align-items-center">
+                            <div class="col-md-8">
+                                <h4 class="mb-0">
+                                    <i class="fas fa-box me-2"></i>
+                                    {{ group.group_name }}
+                                    {% if group.total_stock == 0 %}
+                                        <small class="text-muted ms-2">(Agotado)</small>
+                                    {% endif %}
+                                </h4>
+                                <small class="opacity-75">
+                                    {{ group.category_name }} • {{ group.status_name }}
+                                </small>
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <span class="stock-badge me-3 {{ 'bg-danger' if group.total_stock == 0 else '' }}">
+                                    {{ group.total_stock }} unidades
+                                </span>
+                                <button class="expand-btn" type="button">
+                                    <i class="fas fa-chevron-down"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="group-body collapse" id="group-{{ loop.index0 }}">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="cost-info">
+                                    <h6><i class="fas fa-dollar-sign me-2"></i>Información de Costos</h6>
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <strong>Costo Promedio:</strong><br>
+                                            <span class="text-primary">{{ group.currency }} {{ "%.2f"|format(group.average_cost or 0) }}</span>
+                                        </div>
+                                        <div class="col-6">
+                                            <strong>Valor Total:</strong><br>
+                                            <span class="text-success">{{ group.currency }} {{ "%.2f"|format((group.average_cost or 0) * group.total_stock) }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <h6><i class="fas fa-info-circle me-2"></i>Detalles</h6>
+                                <p class="mb-1"><strong>Ubicación:</strong> {{ group.location or 'No especificada' }}</p>
+                                <p class="mb-1"><strong>Total de items:</strong> {{ group.total_items }}</p>
+                                <p class="mb-0"><strong>Último registro:</strong> {{ group.latest_date.strftime('%Y-%m-%d') if group.latest_date else 'N/A' }}</p>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-12">
+                                <h6><i class="fas fa-barcode me-2"></i>Números de Serie ({{ group.serial_numbers|length }})</h6>
+                                <div class="serial-list">
+                                    {% for serial in group.serial_numbers %}
+                                    <span class="serial-item {{ 'serial-used' if serial.stock == 0 else '' }}" 
+                                          title="ID: {{ serial.id }} | Stock: {{ serial.stock or 0 }} | Costo: {{ group.currency }} {{ serial.cost or 0 }} | Fecha: {{ serial.date.strftime('%Y-%m-%d') if serial.date else 'N/A' }}"
+                                          onclick="viewItem({{ serial.id }})">
+                                        {{ serial.serial }}
+                                    </span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="card">
+                    <div class="card-body text-center py-5">
+                        <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                        <h4 class="text-muted">No se encontraron grupos</h4>
+                        <p class="text-muted">Intenta ajustar los filtros de búsqueda</p>
+                    </div>
+                </div>
+            {% endif %}
+
+        {% else %}
+            <!-- VISTA INDIVIDUAL -->
+            
+            <!-- Vista de tabla para escritorio -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>Lista de Items</span>
+                        <span class="me-3">Total: {{ items|length }} items</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Codigo</th>
+                                    <th>Nombre</th>
+                                    <th>Categoría</th>
+                                    <th>Stock</th>
+                                    <th>Estado</th>
+                                    <th>Ubicación</th>
+                                    <th>Última Actualización</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in items %}
+                                <tr class="{{ 'item-used' if item.Stock == 0 else '' }}">
+                                    <td>#{{ item.ID }}</td>
+                                    <td>{{ item.Name }}</td>
+                                    <td>{{ item.CategoryName }}</td>
+                                    <td>
+                                        {{ item.Stock }}
+                                        {% if item.Stock == 0 %}
+                                            <small class="text-muted">(Usado)</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge {{ 'bg-success' if item.StatusID == 1 else 'bg-warning' if item.StatusID == 2 else 'bg-danger' }}">
+                                            {{ item.StatusName }}
+                                        </span>
+                                    </td>
+                                    <td>{{ item.Location or 'N/A' }}</td>
+                                    <td>{{ item.RegistrationDate.strftime('%Y-%m-%d %H:%M') if item.RegistrationDate else 'N/A' }}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-primary" onclick="viewItem({{ item.ID }})">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-primary" onclick="editItem({{ item.ID }})">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vista de cards para móvil -->
+            <div class="mobile-items-view">
+                <div class="mb-3">
+                    <small class="text-muted">Total: {{ items|length }} items</small>
+                </div>
+                
+                {% for item in items %}
+                <div class="item-card-mobile {{ 'item-used' if item.Stock == 0 else '' }}">
+                    <div class="item-header-mobile">
+                        <div>
+                            <div class="item-title-mobile">{{ item.Name }}</div>
+                            <div class="item-id-mobile">#{{ item.ID }}</div>
+                        </div>
+                        <span class="badge {{ 'bg-success' if item.StatusID == 1 else 'bg-warning' if item.StatusID == 2 else 'bg-danger' }}">
+                            {{ item.StatusName }}
+                        </span>
+                    </div>
+                    
+                    <div class="item-details-mobile">
+                        <div class="detail-item-mobile">
+                            <div class="detail-label-mobile">Categoría</div>
+                            <div class="detail-value-mobile">{{ item.CategoryName }}</div>
+                        </div>
+                        <div class="detail-item-mobile">
+                            <div class="detail-label-mobile">Stock</div>
+                            <div class="detail-value-mobile">
+                                {{ item.Stock }} unidades
+                                {% if item.Stock == 0 %}
+                                    <small class="text-muted">(Usado)</small>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="detail-item-mobile">
+                            <div class="detail-label-mobile">Ubicación</div>
+                            <div class="detail-value-mobile">{{ item.Location or 'N/A' }}</div>
+                        </div>
+                        <div class="detail-item-mobile">
+                            <div class="detail-label-mobile">Última Actualización</div>
+                            <div class="detail-value-mobile">{{ item.RegistrationDate.strftime('%d/%m/%Y') if item.RegistrationDate else 'N/A' }}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="item-actions-mobile">
+                        <button class="btn-mobile btn-view" onclick="viewItem({{ item.ID }})">
+                            <i class="fas fa-eye me-1"></i>Ver
+                        </button>
+                        <button class="btn-mobile btn-edit" onclick="editItem({{ item.ID }})">
+                            <i class="fas fa-edit me-1"></i>Editar
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+                
+                {% if not items %}
+                <div class="text-center py-5">
+                    <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                    <h4 class="text-muted">No se encontraron items</h4>
+                    <p class="text-muted">Intenta ajustar los filtros de búsqueda</p>
+                </div>
+                {% endif %}
+            </div>
+        {% endif %}
+
+        <!-- Paginación -->
+        {% if total_pages > 1 %}
+        <nav aria-label="Page navigation" class="mt-4">
+            <ul class="pagination justify-content-center">
+                {% if prev_page %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ prev_page }}&view={{ view_mode }}&search={{ search }}&category={{ selected_category }}&status={{ selected_status }}">Anterior</a>
+                </li>
+                {% endif %}
+                
+                {% for p in range(1, total_pages + 1) %}
+                <li class="page-item {% if p == current_page %}active{% endif %}">
+                    <a class="page-link" href="?page={{ p }}&view={{ view_mode }}&search={{ search }}&category={{ selected_category }}&status={{ selected_status }}">{{ p }}</a>
+                </li>
+                {% endfor %}
+                
+                {% if next_page %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ next_page }}&view={{ view_mode }}&search={{ search }}&category={{ selected_category }}&status={{ selected_status }}">Siguiente</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Función para expandir/contraer grupos
+        function toggleGroup(index) {
+            const group = document.getElementById(`group-${index}`);
+            const button = group.previousElementSibling.querySelector('.expand-btn');
+            
+            if (group.classList.contains('show')) {
+                group.classList.remove('show');
+                button.classList.remove('expanded');
+            } else {
+                group.classList.add('show');
+                button.classList.add('expanded');
+            }
+        }
+
+        // Funciones para ver y editar items
+        function viewItem(id) {
+            window.location.href = `/item/${id}`;
+        }
+
+        function editItem(id) {
+            window.location.href = `/item/${id}/edit`;
+        }
+
+        // Toggle filtros móviles
+        function toggleFilters() {
+            const filters = document.getElementById('filtersContent');
+            const icon = document.getElementById('filterIcon');
+            
+            if (filters.classList.contains('show')) {
+                filters.classList.remove('show');
+                icon.classList.remove('fa-chevron-up');
+                icon.classList.add('fa-chevron-down');
+            } else {
+                filters.classList.add('show');
+                icon.classList.remove('fa-chevron-down');
+                icon.classList.add('fa-chevron-up');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const exportButton = document.getElementById('exportButton');
+            const printButton = document.getElementById('printButton');
+
+            exportButton.addEventListener('click', async function() {
+                try {
+                    const response = await fetch('/api/export-inventory');
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'inventario.xlsx';
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Error al exportar el inventario');
+                }
+            });
+
+            printButton.addEventListener('click', function() {
+                window.print();
+            });
+
+            // Auto-envío del formulario al cambiar filtros
+            document.querySelectorAll('select[name="category"], select[name="status"]').forEach(select => {
+                select.addEventListener('change', function() {
+                    this.form.submit();
+                });
+            });
+        });
+    </script>
+</body>
+</html>

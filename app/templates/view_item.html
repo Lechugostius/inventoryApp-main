@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ver Item - {{ item.Name }}</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/view.css">
+    <style>
+        .info-card {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+        }
+        
+        .info-item:last-child {
+            border-bottom: none;
+        }
+        
+        .info-label {
+            font-weight: 600;
+            color: var(--primary-color);
+            min-width: 140px;
+        }
+        
+        .info-value {
+            color: #495057;
+            text-align: right;
+        }
+        
+        .status-badge {
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        
+        .stock-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .stock-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-4">
+        <!-- Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2 style="color: var(--primary-color)">
+                    <i class="fas fa-eye me-2"></i>Detalles del Item
+                </h2>
+                <small class="text-muted">Información completa del item #{{ item.ID }}</small>
+            </div>
+            <div>
+                <button class="btn btn-outline-secondary me-2" onclick="window.history.back()">
+                    <i class="fas fa-arrow-left me-2"></i>Volver
+                </button>
+                <button class="btn btn-primary" onclick="editItem({{ item.ID }})">
+                    <i class="fas fa-edit me-2"></i>Editar
+                </button>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Información Principal -->
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-info-circle me-2"></i>Información Básica
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="info-item">
+                            <span class="info-label">
+                                <i class="fas fa-hashtag me-2"></i>Código:
+                            </span>
+                            <span class="info-value">
+                                <span class="badge bg-secondary">#{{ item.ID }}</span>
+                            </span>
+                        </div>
+                        
+                        <div class="info-item">
+                            <span class="info-label">
+                                <i class="fas fa-tag me-2"></i>Nombre:
+                            </span>
+                            <span class="info-value">
+                                <strong>{{ item.Name or 'Sin nombre' }}</strong>
+                            </span>
+                        </div>
+                        
+                        <div class="info-item">
+                            <span class="info-label">
+                                <i class="fas fa-align-left me-2"></i>Descripción:
+                            </span>
+                            <span class="info-value">{{ item.Description or 'Sin descripción' }}</span>
+                        </div>
+                        
+                        <div class="info-item">
+                            <span class="info-label">
+                                <i class="fas fa-barcode me-2"></i>ID Único:
+                            </span>
+                            <span class="info-value">
+                                <code>{{ item.UniqueIdentifier or 'No asignado' }}</code>
+                            </span>
+                        </div>
+                        
+                        <div class="info-item">
+                            <span class="info-label">
+                                <i class="fas fa-boxes me-2"></i>Stock Actual:
+                            </span>
+                            <span class="info-value">
+                                <div class="stock-indicator">
+                                    {% set stock_value = item.Stock or 0 %}
+                                    <div class="stock-dot {% if stock_value > 10 %}bg-success{% elif stock_value > 5 %}bg-warning{% else %}bg-danger{% endif %}"></div>
+                                    <strong>{{ stock_value }} unidades</strong>
+                                </div>
+                            </span>
+                        </div>
+                        
+                        <div class="info-item">
+                            <span class="info-label">
+                                <i class="fas fa-map-marker-alt me-2"></i>Ubicación:
+                            </span>
+                            <span class="info-value">{{ item.Location or 'No especificada' }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detalles Adicionales -->
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-cogs me-2"></i>Detalles Adicionales
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="info-item">
+                            <span class="info-label">
+                                <i class="fas fa-folder me-2"></i>Categoría:
+                            </span>
+                            <span class="info-value">
+                                <span class="badge bg-info">{{ item.CategoryName or 'Sin categoría' }}</span>
+                            </span>
+                        </div>
+                        
+                        <div class="info-item">
+                            <span class="info-label">
+                                <i class="fas fa-flag me-2"></i>Estado:
+                            </span>
+                            <span class="info-value">
+                                {% if item.StatusID == 1 %}
+                                    <span class="status-badge bg-success">{{ item.StatusName or 'Sin estado' }}</span>
+                                {% elif item.StatusID == 2 %}
+                                    <span class="status-badge bg-warning text-dark">{{ item.StatusName or 'Sin estado' }}</span>
+                                {% else %}
+                                    <span class="status-badge bg-danger">{{ item.StatusName or 'Sin estado' }}</span>
+                                {% endif %}
+                            </span>
+                        </div>
+                        
+                        <div class="info-item">
+                            <span class="info-label">
+                                <i class="fas fa-truck me-2"></i>Proveedor:
+                            </span>
+                            <span class="info-value">
+                                {{ item.SupplierName or 'Sin proveedor' }}
+                            </span>
+                        </div>
+                        
+                        <div class="info-item">
+                            <span class="info-label">
+                                <i class="fas fa-user me-2"></i>Propietario:
+                            </span>
+                            <span class="info-value">
+                                {{ item.OwnerName or 'Sin propietario' }}
+                            </span>
+                        </div>
+                        
+                        <div class="info-item">
+                            <span class="info-label">
+                                <i class="fas fa-calendar me-2"></i>Fecha de Registro:
+                            </span>
+                            <span class="info-value">
+                                {% if item.RegistrationDate %}
+                                    {{ item.RegistrationDate.strftime('%d/%m/%Y') }}<br>
+                                    <small class="text-muted">{{ item.RegistrationDate.strftime('%H:%M:%S') }}</small>
+                                {% else %}
+                                    <span class="text-muted">No disponible</span>
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Historial de Movimientos -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">
+                                <i class="fas fa-history me-2"></i>Historial de Movimientos
+                            </h5>
+                            <small class="text-muted">
+                                {% if movements %}{{ movements|length }} movimientos registrados{% else %}Sin movimientos{% endif %}
+                            </small>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        {% if movements %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th><i class="fas fa-calendar me-1"></i>Fecha</th>
+                                        <th><i class="fas fa-exchange-alt me-1"></i>Tipo</th>
+                                        <th><i class="fas fa-hashtag me-1"></i>Cantidad</th>
+                                        <th><i class="fas fa-map-marker-alt me-1"></i>Destino</th>
+                                        <th><i class="fas fa-sticky-note me-1"></i>Notas</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for movement in movements %}
+                                    <tr>
+                                        <td>
+                                            {{ movement.Date.strftime('%d/%m/%Y') }}<br>
+                                            <small class="text-muted">{{ movement.Date.strftime('%H:%M') }}</small>
+                                        </td>
+                                        <td>
+                                            {% if movement.MovementTypeID == 4 %}
+                                                <span class="badge bg-success">
+                                                    <i class="fas fa-plus me-1"></i>Entrada
+                                                </span>
+                                            {% elif movement.MovementTypeID == 1 %}
+                                                <span class="badge bg-danger">
+                                                    <i class="fas fa-minus me-1"></i>Salida
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-info">
+                                                    <i class="fas fa-exchange-alt me-1"></i>Otro
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <strong>{{ movement.Quantity }}</strong>
+                                        </td>
+                                        <td>{{ movement.Destination or 'No especificado' }}</td>
+                                        <td>
+                                            {% if movement.Notes %}
+                                                <span title="{{ movement.Notes }}">
+                                                    {{ movement.Notes[:50] }}{% if movement.Notes|length > 50 %}...{% endif %}
+                                                </span>
+                                            {% else %}
+                                                <span class="text-muted">Sin notas</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                            <p class="text-muted mb-0">No hay movimientos registrados para este item</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Archivos Adjuntos (si los hay) -->
+        {% if files %}
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-paperclip me-2"></i>Archivos Adjuntos
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            {% for file in files %}
+                            <div class="col-md-3 mb-3">
+                                <div class="card">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-file fa-2x mb-2 text-muted"></i>
+                                        <p class="mb-1">{{ file.URL.split('/')[-1] }}</p>
+                                        <a href="{{ file.URL }}" target="_blank" class="btn btn-sm btn-primary">
+                                            <i class="fas fa-external-link-alt me-1"></i>Ver
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function editItem(id) {
+            window.location.href = `/item/${id}/edit`;
+        }
+    </script>
+</body>
+</html>

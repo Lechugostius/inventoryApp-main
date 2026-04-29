@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Inventario</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/view.css">
+</head>
+<body class="main-layout">
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="spinner"></div>
+    </div>
+
+    <div id="wrapper">
+        <!-- Sidebar -->
+        <div id="sidebar-wrapper">
+            <div class="sidebar-heading d-flex align-items-center">
+                <i class="fas fa-boxes me-2"></i>
+                <span>Sistema de Inventario</span>
+            </div>
+            
+            <!-- Información del usuario -->
+            <div class="user-info">
+                <i class="fas fa-user-circle me-2"></i>
+                <span>{{ user.name or 'Usuario' }}</span>
+            </div>
+
+            <!-- Gestión de Inventario -->
+            <div class="menu-section">
+                <div class="menu-section-title">Inventario</div>
+                <div class="list-group list-group-flush">
+                    <a class="list-group-item list-group-item-action" data-page="/dashboard">
+                        <i class="fas fa-home me-2"></i> Dashboard
+                    </a>
+                    <a class="list-group-item list-group-item-action" data-page="/nueva-entrada">
+                        <i class="fas fa-plus-circle me-2"></i> Nueva Entrada
+                    </a>
+                    <a class="list-group-item list-group-item-action" data-page="/inventario">
+                        <i class="fas fa-list me-2"></i> Ver Inventario
+                    </a>
+                    <a class="list-group-item list-group-item-action" data-page="/registrarSalida">
+                        <i class="fas fa-sign-out-alt me-2"></i> Registrar Salida
+                    </a>
+                </div>
+            </div>
+
+            <!-- Gestión de Items -->
+            <div class="menu-section">
+                <div class="menu-section-title">Gestión</div>
+                <div class="list-group list-group-flush">
+                    <a class="list-group-item list-group-item-action" data-page="/categorias">
+                        <i class="fas fa-tags me-2"></i> Categorías
+                    </a>
+                    <a class="list-group-item list-group-item-action" data-page="/proveedores">
+                        <i class="fas fa-truck me-2"></i> Proveedores
+                    </a>
+                </div>
+            </div>
+
+            <!-- Reportes -->
+            <div class="menu-section">
+                <div class="menu-section-title">Reportes</div>
+                <div class="list-group list-group-flush">
+                    <a class="list-group-item list-group-item-action" data-page="/informes">
+                        <i class="fas fa-chart-bar me-2"></i> Informes
+                    </a>
+                    <a class="list-group-item list-group-item-action" data-page="/historial">
+                        <i class="fas fa-history me-2"></i> Historial
+                    </a>
+                    <a class="list-group-item list-group-item-action" data-page="exportar.html">
+                        <i class="fas fa-file-export me-2"></i> Exportar Datos
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contenido Principal -->
+        <div id="content-wrapper">
+            <iframe id="content-iframe" src="/dashboard"></iframe>
+        </div>
+
+        <!-- Navegación móvil -->
+        <nav class="mobile-nav">
+            <div class="nav-item" id="toggleSidebar">
+                <i class="fas fa-bars"></i>
+                <span>Menú</span>
+            </div>
+            <div class="nav-item" data-page="/dashboard">
+                <i class="fas fa-home"></i>
+                <span>Inicio</span>
+            </div>
+            <div class="nav-item" data-page="/nueva-entrada">
+                <i class="fas fa-plus"></i>
+                <span>Nuevo</span>
+            </div>
+            <div class="nav-item" data-page="/inventario">
+                <i class="fas fa-search"></i>
+                <span>Buscar</span>
+            </div>
+        </nav>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const contentIframe = document.getElementById('content-iframe');
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            const menuItems = document.querySelectorAll('.list-group-item, .mobile-nav .nav-item[data-page]');
+            const toggleSidebar = document.getElementById('toggleSidebar');
+
+            // Función para mostrar/ocultar el loading
+            function toggleLoading(show) {
+                loadingOverlay.style.visibility = show ? 'visible' : 'hidden';
+            }
+
+            // Función para cambiar de página
+            function navigateToPage(page) {
+                toggleLoading(true);
+                contentIframe.src = page;
+                
+                // Remover la clase active de todos los items
+                menuItems.forEach(item => item.classList.remove('active'));
+                
+                // Agregar la clase active al item seleccionado
+                const activeItems = document.querySelectorAll(`[data-page="${page}"]`);
+                activeItems.forEach(item => item.classList.add('active'));
+            }
+
+            // Event listener para el iframe cargado
+            contentIframe.addEventListener('load', function() {
+                toggleLoading(false);
+            });
+
+            // Event listeners para los items del menú
+            menuItems.forEach(item => {
+                item.addEventListener('click', function() {
+                    const page = this.dataset.page;
+                    if (page) {
+                        navigateToPage(page);
+                    }
+                });
+            });
+
+            // Toggle sidebar en móvil
+            toggleSidebar.addEventListener('click', function() {
+                document.body.classList.toggle('sidebar-open');
+            });
+
+            // Cargar dashboard por defecto
+            navigateToPage('/dashboard');
+        });
+    </script>
+</body>
+</html>

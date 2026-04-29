@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registrar Salida - Sistema de Inventario</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/view.css">
+    <style>
+        /* Mantener todos tus estilos existentes */
+        .search-container {
+            position: relative;
+        }
+
+        .search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .search-item {
+            padding: 0.75rem;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .search-item:hover {
+            background: #f8f9fa;
+        }
+
+        .search-item:last-child {
+            border-bottom: none;
+        }
+
+        .selected-products {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .product-item {
+            background: white;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            border-radius: 8px;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .item-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+
+        .item-details h6 {
+            margin: 0;
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        .item-details small {
+            display: block;
+            margin-top: 2px;
+            color: #666;
+        }
+
+        .item-stock {
+            text-align: right;
+        }
+
+        .stock-badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .stock-high {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .stock-medium {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        .stock-low {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .summary-item:last-child {
+            border-bottom: none;
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+
+        .serial-numbers {
+            max-height: 300px;
+            overflow-y: auto;
+            padding: 0.5rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .serial-item {
+            background: white;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: block;
+        }
+
+        .serial-item:hover {
+            border-color: var(--primary-color);
+            box-shadow: 0 2px 8px rgba(106, 11, 147, 0.15);
+        }
+
+        .serial-item.selected {
+            border-color: var(--primary-color);
+            background: rgba(106, 11, 147, 0.1);
+            box-shadow: 0 2px 8px rgba(106, 11, 147, 0.2);
+        }
+
+        .serial-item.disabled {
+            background: #f8f9fa;
+            border-color: #e9ecef;
+            color: #6c757d;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .serial-item.disabled:hover {
+            border-color: #e9ecef;
+            box-shadow: none;
+        }
+
+        .product-item .serial-numbers {
+            background: rgba(106, 11, 147, 0.05);
+            border: 1px solid rgba(106, 11, 147, 0.2);
+            margin-top: 1rem;
+        }
+
+        .product-item .serial-item {
+            background: white;
+            border: 1px solid rgba(106, 11, 147, 0.3);
+            padding: 0.5rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .product-item .serial-item.selected {
+            border-color: var(--primary-color);
+            background: rgba(106, 11, 147, 0.1);
+        }
+
+        /* NUEVOS ESTILOS PARA SECCIÓN DE DESTINO */
+        .destination-section {
+            margin-top: 15px;
+            padding: 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            background-color: #f8f9fa;
+        }
+
+        .destination-section.active {
+            border-color: var(--primary-color);
+            background-color: rgba(106, 11, 147, 0.05);
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 15px;
+        }
+
+        .radio-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .radio-option input[type="radio"] {
+            width: 18px;
+            height: 18px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .modal.fade .modal-dialog {
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .modal .small {
+            font-size: 0.9rem;
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            .serial-item {
+                padding: 0.5rem;
+                margin-bottom: 0.25rem;
+            }
+            
+            .modal-dialog {
+                margin: 0.5rem;
+            }
+            
+            .search-results {
+                position: fixed;
+                top: auto;
+                left: 0.5rem;
+                right: 0.5rem;
+                z-index: 1050;
+            }
+
+            .radio-group {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+
+        .btn-outline-primary:hover {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .badge.bg-success {
+            background-color: #198754 !important;
+        }
+
+        .badge.bg-danger {
+            background-color: #dc3545 !important;
+        }
+
+        .search-item {
+            border-left: 4px solid var(--primary-color);
+            background: linear-gradient(135deg, #ffffff 0%, rgba(106, 11, 147, 0.02) 100%);
+        }
+
+        .search-item:hover {
+            background: linear-gradient(135deg, #f8f9fa 0%, rgba(106, 11, 147, 0.05) 100%);
+            transform: translateX(2px);
+        }
+
+        .search-item .item-details h6 .fa-layer-group {
+            color: var(--primary-color);
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        {% if error_message %}
+        <div class="alert alert-danger" role="alert">
+            {{ error_message }}
+        </div>
+        {% endif %}
+
+        <!-- MANTENER TU HEADER ORIGINAL -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <h2 style="color: var(--primary-color)">
+                    <i class="fas fa-sign-out-alt me-2"></i>
+                    Registrar Salida de Inventario
+                </h2>
+            </div>
+            <div class="col-md-6 text-end">
+                <span class="badge bg-warning fs-6">
+                    <i class="fas fa-clock me-2"></i>Pendiente
+                </span>
+            </div>
+        </div>
+
+        <form id="salidaForm">
+            <!-- MANTENER TU SELECCIÓN DE ITEM ORIGINAL -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5><i class="fas fa-search me-2"></i>Selección de Item</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="searchInput" class="form-label">Buscar Item</label>
+                        <div class="search-container">
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-barcode"></i>
+                                </span>
+                                <input type="text" class="form-control" id="searchInput" 
+                                       placeholder="Busca por nombre, ID o número de serie...">
+                                <button class="btn btn-primary" type="button" id="searchButton">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                            
+                            <!-- DROPDOWN DE RESULTADOS -->
+                            <div class="search-results" id="searchResults"></div>
+                        </div>
+                    </div>
+
+                    <!-- PRODUCTOS SELECCIONADOS -->
+                    <div class="selected-products" id="selectedProducts">
+                        <h6><i class="fas fa-list me-2"></i>Productos Seleccionados (<span id="productCount">0</span>)</h6>
+                        <div id="productsList"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Información de Salida -->
+                <div class="col-md-6">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5><i class="fas fa-info-circle me-2"></i>Información de Salida</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label for="movement_type" class="form-label">Tipo de Salida</label>
+                                <select class="form-select" id="movement_type" name="movement_type">
+                                    <option value="">Selecciona el tipo</option>
+                                    {% for type in movement_types %}
+                                    <option value="{{ type.ID }}">{{ type.Name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="movement_date" class="form-label">Fecha de Salida</label>
+                                <input type="date" class="form-control" id="movement_date" name="movement_date">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- NUEVA SECCIÓN: Destino -->
+                <div class="col-md-6">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5><i class="fas fa-map-marker-alt me-2"></i>Destino</h5>
+                        </div>
+                        <div class="card-body">
+                            <!-- Tipo de Destino -->
+                            <div class="mb-3">
+                                <label class="form-label">Tipo de Destino</label>
+                                <div class="radio-group">
+                                    <div class="radio-option">
+                                        <input type="radio" id="dept_radio" name="destination_type" value="department" checked>
+                                        <label for="dept_radio">Departamento Interno</label>
+                                    </div>
+                                    <div class="radio-option">
+                                        <input type="radio" id="store_radio" name="destination_type" value="tienda">
+                                        <label for="store_radio">Tienda/Restaurante</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Sección Departamento -->
+                            <div id="departmentSection" class="destination-section active">
+                                <label for="department" class="form-label">Departamento</label>
+                                <select class="form-select" id="department" name="department">
+                                    <option value="">Selecciona departamento</option>
+                                    {% for dept in departments %}
+                                    <option value="{{ dept.Name }}">{{ dept.Name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <!-- Sección Tienda -->
+                            <div id="tiendaSection" class="destination-section hidden">
+                                <div class="mb-3">
+                                    <label for="paisSelect" class="form-label">País (opcional)</label>
+                                    <select class="form-select" id="paisSelect">
+                                        <option value="">Todos los países...</option>
+                                        {% for pais in paises %}
+                                        <option value="{{ pais.id_pais }}">{{ pais.nombre }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="tiendaSelect" class="form-label">Tienda</label>
+                                    <select class="form-select" name="tienda_id" id="tiendaSelect">
+                                        <option value="">Seleccionar tienda...</option>
+                                        {% for tienda in tiendas %}
+                                        <option value="{{ tienda.id_tienda }}" data-pais="{{ tienda.id_pais }}">
+                                            {{ tienda.siglas }} - {{ tienda.nombre_tienda }} ({{ tienda.pais_nombre }})
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Responsable -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5><i class="fas fa-user me-2"></i>Responsable</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="responsible_name" class="form-label">Nombre del Responsable</label>
+                            <input type="text" class="form-control" id="responsible_name" 
+                                   name="responsible_name" placeholder="Nombre completo">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="responsible_email" class="form-label">Correo Electrónico</label>
+                            <input type="email" class="form-control" id="responsible_email" 
+                                   name="responsible_email" placeholder="correo@empresa.com">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="responsible_phone" class="form-label">Teléfono</label>
+                            <input type="tel" class="form-control" id="responsible_phone" 
+                                   name="responsible_phone" placeholder="Teléfono">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MANTENER TU DOCUMENTACIÓN ORIGINAL -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5><i class="fas fa-clipboard me-2"></i>Documentación</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Observaciones</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="3"
+                                  placeholder="Ingresa cualquier información adicional relevante..."></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Documentos de Respaldo</label>
+                        <div id="dropArea" style="border: 2px dashed var(--primary-color); border-radius: 10px; padding: 2rem; text-align: center; background: rgba(106, 11, 147, 0.05); cursor: pointer;">
+                            <i class="fas fa-cloud-upload-alt fa-3x text-primary mb-3"></i>
+                            <h5>Arrastra documentos aquí o haz clic para seleccionar</h5>
+                            <p class="text-muted">Soporta PDF, imágenes, documentos</p>
+                            <input type="file" id="fileInput" multiple style="display: none;">
+                            <button type="button" class="btn btn-outline-primary" onclick="document.getElementById('fileInput').click()">
+                                <i class="fas fa-plus me-2"></i>Seleccionar Archivos
+                            </button>
+                        </div>
+                        <div id="fileList" class="mt-2"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MANTENER TU RESUMEN ORIGINAL -->
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-chart-bar me-2"></i>Resumen de Salida</h5>
+                </div>
+                <div class="card-body">
+                    <div id="summaryContent">
+                        <div class="text-center py-4">
+                            <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">No hay items seleccionados</p>
+                            <small class="text-muted">Busca y selecciona items para ver el resumen</small>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="row">
+                        <div class="col-md-4">
+                            <button type="button" class="btn btn-outline-secondary w-100" id="saveDraft">
+                                <i class="fas fa-save me-2"></i>Guardar Borrador
+                            </button>
+                        </div>
+                        <div class="col-md-4">
+                            <button type="submit" class="btn btn-primary w-100" id="submitButton" disabled>
+                                <i class="fas fa-sign-out-alt me-2"></i>Registrar Salida
+                            </button>
+                        </div>
+                        <div class="col-md-4">
+                            <a href="/inventario" class="btn btn-outline-secondary w-100">
+                                <i class="fas fa-arrow-left me-2"></i>Cancelar
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/registrarSalida.js"></script>
+    
+    <!-- NUEVO SCRIPT PARA MANEJAR TIENDAS -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const paisSelect = document.getElementById('paisSelect');
+        const tiendaSelect = document.getElementById('tiendaSelect');
+        const deptRadio = document.getElementById('dept_radio');
+        const storeRadio = document.getElementById('store_radio');
+        const departmentSection = document.getElementById('departmentSection');
+        const tiendaSection = document.getElementById('tiendaSection');
+        
+        // Guardar todas las opciones de tiendas
+        const allTiendaOptions = Array.from(tiendaSelect.options).slice(1); // Excluir la primera opción
+        
+        // Manejar cambio de tipo de destino
+        function toggleDestinationType() {
+            if (deptRadio.checked) {
+                departmentSection.classList.remove('hidden');
+                departmentSection.classList.add('active');
+                tiendaSection.classList.add('hidden');
+                tiendaSection.classList.remove('active');
+            } else {
+                departmentSection.classList.add('hidden');
+                departmentSection.classList.remove('active');
+                tiendaSection.classList.remove('hidden');
+                tiendaSection.classList.add('active');
+            }
+        }
+        
+        deptRadio.addEventListener('change', toggleDestinationType);
+        storeRadio.addEventListener('change', toggleDestinationType);
+        
+        // Filtrar tiendas por país
+        paisSelect.addEventListener('change', function() {
+            const selectedPais = this.value;
+            
+            // Limpiar opciones actuales (excepto la primera)
+            tiendaSelect.innerHTML = '<option value="">Seleccionar tienda...</option>';
+            
+            // Filtrar y agregar opciones
+            allTiendaOptions.forEach(option => {
+                if (!selectedPais || option.dataset.pais === selectedPais) {
+                    tiendaSelect.appendChild(option.cloneNode(true));
+                }
+            });
+        });
+        
+        // Inicializar estado
+        toggleDestinationType();
+    });
+    </script>
+</body>
+</html>

@@ -1,0 +1,105 @@
+:root {
+    --primary-color: #6A0B93;
+    --secondary-color: #E6E6FA;
+    --primary-hover: #8010b6;
+    --text-light: #ffffff;
+}
+
+body {
+    background-color: var(--secondary-color);
+    padding: 20px;
+}
+
+.card {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 0 15px rgba(0,0,0,0.1);
+}
+
+.card-header {
+    background-color: var(--primary-color);
+    color: var(--text-light);
+    border-radius: 15px 15px 0 0 !important;
+    padding: 1rem;
+}
+
+.timeline {
+    position: relative;
+    padding: 20px 0;
+}
+
+.timeline-item {
+    position: relative;
+    padding: 20px 30px;
+    border-left: 2px solid var(--primary-color);
+    margin-left: 50px;
+}
+
+.timeline-item::before {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background-color: var(--primary-color);
+    left: -9px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.timeline-date {
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.timeline-badge {
+    padding: 0.35em 0.65em;
+    border-radius: 10px;
+    font-size: 0.85em;
+}
+
+.badge-entrada {
+    background-color: #28a745;
+    color: white;
+}
+
+.badge-salida {
+    background-color: #dc3545;
+    color: white;
+}
+
+.badge-cambio {
+    background-color: #17a2b8;
+    color: white;
+}
+
+.search-box {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.search-box .form-control {
+    padding-left: 40px;
+    border-radius: 20px;
+}
+
+.search-box i {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #666;
+}
+
+.btn-filter {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 20px;
+    padding: 8px 20px;
+}
+
+.btn-filter:hover {
+    background-color: var(--primary-hover);
+    color: white;
+}

@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nueva Entrada - Sistema de Inventario</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/view.css">
+    <style>
+        :root {
+            --primary-color: #6A0B93;
+            --secondary-color: #E6E6FA;
+        }
+        
+        .invoice-header {
+            background: linear-gradient(135deg, var(--primary-color), #8B5A96);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+        
+        .item-card {
+            border: 2px dashed #ddd;
+            margin-bottom: 20px;
+            padding: 20px;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .item-card.filled {
+            border: 2px solid var(--primary-color);
+            background-color: #f8f9fa;
+        }
+        
+        .serial-input-group {
+            margin-bottom: 10px;
+        }
+        
+        .serial-counter {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.9em;
+        }
+        
+        .remove-item-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 10;
+        }
+        
+        .cost-summary {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+        }
+        
+        .total-cost-display {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-4">
+        <!-- Encabezado -->
+        <div class="invoice-header">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h3><i class="fas fa-plus-circle me-2"></i>Nueva Entrada de Inventario</h3>
+                    <p class="mb-0">Registra uno o múltiples productos de una misma factura</p>
+                </div>
+                <div class="col-md-6">
+                    <div class="row">
+                        <div class="col-4">
+                            <label class="form-label">Número de Factura</label>
+                            <input type="text" class="form-control" id="invoiceNumber" name="invoice_number" placeholder="FAC-001">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label">Fecha de Factura</label>
+                            <input type="date" class="form-control" id="invoiceDate" name="invoice_date">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label">Moneda de la Factura</label>
+                            <select class="form-select" id="invoiceCurrency" name="invoice_currency">
+                                <option value="USD">🇺🇸 Dólares (USD)</option>
+                                <option value="CRC">🇨🇷 Colones (CRC)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <form id="newEntryForm">
+            <!-- Información del Proveedor -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5><i class="fas fa-truck me-2"></i>Información del Proveedor</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="form-label">Proveedor</label>
+                            <select class="form-select" id="supplierId" name="supplier_id" required>
+                                <option value="">Selecciona un proveedor</option>
+                                {% for supplier in suppliers %}
+                                <option value="{{ supplier.ID }}">{{ supplier.Name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Ubicación de Almacén</label>
+                            <input type="text" class="form-control" id="warehouseLocation" name="location" placeholder="Ej: Almacén Central - Estante A1" required>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Productos -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5><i class="fas fa-boxes me-2"></i>Productos</h5>
+                    <button type="button" class="btn btn-light btn-sm" onclick="addNewItem()">
+                        <i class="fas fa-plus me-2"></i>Agregar Producto
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="itemsContainer">
+                        <!-- Los items se agregarán aquí dinámicamente -->
+                    </div>
+                    
+                    <div class="text-center mt-4" id="emptyState">
+                        <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No hay productos agregados. Haz clic en "Agregar Producto" para comenzar.</p>
+                    </div>
+
+                    <!-- Resumen de Costos -->
+                    <div id="costSummary" class="cost-summary" style="display: none;">
+                        <div class="row text-center">
+                            <div class="col-md-3">
+                                <h5 id="totalProducts">0</h5>
+                                <small>Productos Diferentes</small>
+                            </div>
+                            <div class="col-md-3">
+                                <h5 id="totalUnits">0</h5>
+                                <small>Unidades Totales</small>
+                            </div>
+                            <div class="col-md-3">
+                                <h5 id="totalCost">$0.00</h5>
+                                <small>Costo Total</small>
+                            </div>
+                            <div class="col-md-3">
+                                <h5 id="completionPercentage">0%</h5>
+                                <small>Completitud</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Documentación -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5><i class="fas fa-file-alt me-2"></i>Documentación</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <label class="form-label">Fotos/Documentos</label>
+                            <div id="dropArea" class="mb-3">
+                                <i class="fas fa-cloud-upload-alt fa-2x mb-2" style="color: var(--primary-color)"></i>
+                                <p class="mb-0">Arrastra y suelta archivos aquí o</p>
+                                <input type="file" id="fileInput" name="files" multiple accept="image/*,.pdf,.doc,.docx" style="display: none;">
+                                <button type="button" class="btn btn-primary mt-2" onclick="document.getElementById('fileInput').click()">
+                                    <i class="fas fa-plus me-2"></i>Seleccionar Archivos
+                                </button>
+                            </div>
+                            <div id="previewContainer" class="d-flex flex-wrap gap-2"></div>
+                        </div>
+                        <div class="col-md-12 mt-3">
+                            <label class="form-label">Notas Generales</label>
+                            <textarea class="form-control" name="general_notes" rows="3" placeholder="Notas que aplican a toda la entrada..."></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botones de Acción -->
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <button type="button" class="btn btn-outline-secondary me-2" id="saveDraft">
+                                <i class="fas fa-save me-2"></i>Guardar Borrador
+                            </button>
+                            <button type="button" class="btn btn-outline-info me-2" onclick="previewSummary()">
+                                <i class="fas fa-eye me-2"></i>Vista Previa
+                            </button>
+                        </div>
+                        <div>
+                            <button type="button" class="btn btn-outline-danger me-2" onclick="clearAll()">
+                                <i class="fas fa-trash me-2"></i>Limpiar Todo
+                            </button>
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="fas fa-check-circle me-2"></i>Registrar Entrada
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Modal para Vista Previa -->
+    <div class="modal fade" id="previewModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Vista Previa de la Entrada</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="previewContent">
+                    <!-- Contenido de vista previa -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="button" class="btn btn-success" onclick="submitEntry()">
+                        <i class="fas fa-check me-2"></i>Confirmar Registro
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Resultados -->
+    <div class="modal fade" id="resultsModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header" id="resultsModalHeader">
+                    <h5 class="modal-title" id="resultsModalTitle">Resultado del Procesamiento</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="resultsModalBody">
+                    <!-- Contenido de resultados -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="button" class="btn btn-primary" onclick="viewInventory()" id="viewInventoryBtn" style="display: none;">
+                        <i class="fas fa-boxes me-2"></i>Ver Inventario
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Datos que se poblarán del servidor
+        const categories = [
+            {% for category in categories %}
+            { id: {{ category.ID }}, name: "{{ category.Name }}" },
+            {% endfor %}
+        ];
+
+        const suppliers = [
+            {% for supplier in suppliers %}
+            { id: {{ supplier.ID }}, name: "{{ supplier.Name }}" },
+            {% endfor %}
+        ];
+
+        const statuses = [
+            {% for status in statuses %}
+            { id: {{ status.ID }}, name: "{{ status.Name }}" },
+            {% endfor %}
+        ];
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/nueva-entrada.js"></script>
+    <script src="/static/js/general-service.js"></script>
+</body>
+</html>

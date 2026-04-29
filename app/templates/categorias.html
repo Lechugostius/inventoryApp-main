@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Categorías</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <link href="/static/css/categorias.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0"><i class="fas fa-tags me-2"></i>Gestión de Categorías</h4>
+                    <button class="btn btn-light" onclick="openAddModal()">
+                        <i class="fas fa-plus me-2"></i>Nueva Categoría
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Codigo</th>
+                                <th>Nombre</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for category in categories %}
+                            <tr>
+                                <td>#{{ category.ID }}</td>
+                                <td>{{ category.Name }}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-primary" onclick="editCategory('{{ category.ID }}', '{{ category.Name|tojson|safe }}')">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-danger" onclick="deleteCategory('{{ category.ID }}')">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Agregar/Editar -->
+    <div class="modal fade" id="categoryModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle">Nueva Categoría</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="categoryForm">
+                        <input type="hidden" id="categoryId">
+                        <div class="mb-3">
+                            <label class="form-label">Nombre</label>
+                            <input type="text" class="form-control" id="categoryName" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="saveCategory()">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let categoryModal;
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            categoryModal = new bootstrap.Modal(document.getElementById('categoryModal'));
+        });
+    
+        function openAddModal() {
+            document.getElementById('modalTitle').textContent = 'Nueva Categoría';
+            document.getElementById('categoryId').value = '';
+            document.getElementById('categoryName').value = '';
+            categoryModal.show();
+        }
+    
+        function editCategory(id, name) {
+            console.log('Editando categoría:', id, name); // Debug
+            document.getElementById('modalTitle').textContent = 'Editar Categoría';
+            document.getElementById('categoryId').value = id;
+            document.getElementById('categoryName').value = name;
+            categoryModal.show();
+        }
+    
+        async function saveCategory() {
+            const id = document.getElementById('categoryId').value;
+            const name = document.getElementById('categoryName').value;
+    
+            if (!name) {
+                alert('El nombre es requerido');
+                return;
+            }
+    
+            try {
+                const response = await fetch('/api/categorias', {
+                    method: id ? 'PUT' : 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(id ? { id: parseInt(id), name } : { name })
+                });
+    
+                if (response.ok) {
+                    categoryModal.hide();
+                    location.reload();
+                } else {
+                    const error = await response.json();
+                    alert(error.error || 'Error al guardar la categoría');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al procesar la solicitud');
+            }
+        }
+    
+        async function deleteCategory(id) {
+            if (!confirm('¿Estás seguro de que quieres eliminar esta categoría?')) {
+                return;
+            }
+    
+            try {
+                const response = await fetch('/api/categorias', {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ id })
+                });
+    
+                if (response.ok) {
+                    location.reload();
+                } else {
+                    const error = await response.json();
+                    alert(error.error || 'Error al eliminar la categoría');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al procesar la solicitud');
+            }
+        }
+    </script>
+</body>
+</html>

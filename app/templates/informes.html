@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Informes - Sistema de Inventario</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="/static/css/informes.css">
+</head>
+<body>
+    <div class="container-fluid">
+        <!-- Header -->
+        <div class="row mb-4 align-items-center">
+            <div class="col-md-8">
+                <h2 style="color: var(--primary-color)">
+                    <i class="fas fa-chart-bar me-2"></i>Informes y Estadísticas
+                </h2>
+            </div>
+            <div class="col-md-4 text-end">
+                <button class="btn btn-primary me-2" onclick="exportarPDF()">
+                    <i class="fas fa-file-pdf me-2"></i>Exportar PDF
+                </button>
+                <button class="btn btn-primary" onclick="exportarExcel()">
+                    <i class="fas fa-file-excel me-2"></i>Exportar Excel
+                </button>
+            </div>
+        </div>
+
+        <!-- Estadísticas Generales -->
+        <div class="row g-4 mb-4">
+            <div class="col-md-4">
+                <div class="card stat-card">
+                    <div class="card-header">
+                        <i class="fas fa-boxes me-2"></i>Stock Total
+                    </div>
+                    <div class="card-body text-center">
+                        <h3>{{ total_stock }}</h3>
+                        <p class="subtitle mb-0">unidades en inventario</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card stat-card">
+                    <div class="card-header">
+                        <i class="fas fa-sign-in-alt me-2"></i>Entradas
+                    </div>
+                    <div class="card-body text-center">
+                        <h3>{{ entradas }}</h3>
+                        <p class="subtitle mb-0">movimientos registrados</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card stat-card">
+                    <div class="card-header">
+                        <i class="fas fa-sign-out-alt me-2"></i>Salidas
+                    </div>
+                    <div class="card-body text-center">
+                        <h3>{{ salidas }}</h3>
+                        <p class="subtitle mb-0">movimientos registrados</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráficos -->
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <i class="fas fa-chart-pie me-2"></i>Items por Categoría
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="categoriesChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <i class="fas fa-chart-line me-2"></i>Movimientos por Mes
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="movementsChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuración de colores
+        const colors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'];
+
+        // Datos para el gráfico de categorías
+        const categoryData = {
+            labels: {{ items_by_category.keys()|list|tojson }},
+            datasets: [{
+                data: {{ items_by_category.values()|list|tojson }},
+                backgroundColor: colors,
+                borderWidth: 0
+            }]
+        };
+
+        // Configuración del gráfico de categorías
+        const categoriesChart = new Chart(
+            document.getElementById('categoriesChart'),
+            {
+                type: 'pie',
+                data: categoryData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right'
+                        }
+                    }
+                }
+            }
+        );
+
+        // Datos para el gráfico de movimientos
+        const months = {{ movements|tojson }};
+        const movementsData = {
+            labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
+            datasets: [
+                {
+                    label: 'Entradas',
+                    data: [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    borderColor: '#36A2EB',
+                    fill: false,
+                    tension: 0.4
+                },
+                {
+                    label: 'Salidas',
+                    data: [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    borderColor: '#FF6384',
+                    fill: false,
+                    tension: 0.4
+                }
+            ]
+        };
+
+        // Configuración del gráfico de movimientos
+        const movementsChart = new Chart(
+            document.getElementById('movementsChart'),
+            {
+                type: 'line',
+                data: movementsData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    }
+                }
+            }
+        );
+        // Funciones de exportación
+        async function exportarPDF() {
+            try {
+                const response = await fetch('/api/export/pdf');
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'reporte_inventario.pdf';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                } else {
+                    const error = await response.json();
+                    alert('Error al exportar PDF: ' + error.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al exportar PDF');
+            }
+        }
+
+        async function exportarExcel() {
+            try {
+                const response = await fetch('/api/export/excel');
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'inventario.xlsx';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                } else {
+                    const error = await response.json();
+                    alert('Error al exportar Excel: ' + error.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al exportar Excel');
+            }
+        }
+    </script>
+</body>
+</html>

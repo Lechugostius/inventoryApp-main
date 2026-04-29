@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Sistema de Inventario</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/view.css">
+</head>
+<body>
+    <div class="container-fluid">
+        {% if error_message %}
+        <div class="alert alert-danger" role="alert">
+            {{ error_message }}
+        </div>
+        {% endif %}
+
+        <!-- Header con búsqueda -->
+        <div class="row mb-4 align-items-center">
+            <div class="col-md-6">
+                <h2 style="color: var(--primary-color)">Dashboard</h2>
+            </div>
+            <div class="col-md-6">
+                <form action="/inventario" method="GET" class="d-flex">
+                    <input type="text" class="form-control" name="search" placeholder="Buscar en inventario..." id="dashboardSearch">
+                    <button type="submit" class="btn btn-primary ms-2" style="background-color: var(--primary-color)">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Tarjetas de Estadísticas -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card stat-card">
+                    <div class="card-header">
+                        <i class="fas fa-box me-2"></i> Total Items
+                    </div>
+                    <div class="card-body">
+                        <h3 class="card-title">{{ stats.total_items if stats else 0 }}</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card">
+                    <div class="card-header">
+                        <i class="fas fa-exclamation-triangle me-2"></i> Stock Bajo
+                    </div>
+                    <div class="card-body">
+                        <h3 class="card-title">{{ stats.low_stock if stats else 0 }}</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card">
+                    <div class="card-header">
+                        <i class="fas fa-sign-in-alt me-2"></i> Entradas Hoy
+                    </div>
+                    <div class="card-body">
+                        <h3 class="card-title">{{ stats.entries_today if stats else 0 }}</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card">
+                    <div class="card-header">
+                        <i class="fas fa-sign-out-alt me-2"></i> Salidas Hoy
+                    </div>
+                    <div class="card-body">
+                        <h3 class="card-title">{{ stats.exits_today if stats else 0 }}</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráficos y Tablas -->
+        <div class="row">
+            <!-- Tabla de Últimos Movimientos -->
+            <div class="col-md-8 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span><i class="fas fa-history me-2"></i> Últimos Movimientos (Agrupados)</span>
+                            <button class="btn btn-sm btn-light">Ver Todos</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Codigo</th>
+                                        <th>Item</th>
+                                        <th>Tipo</th>
+                                        <th>Fecha</th>
+                                        <th>Cantidad</th>
+                                        <th>Destino</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% if movements %}
+                                        {% for movement in movements %}
+                                        <tr>
+                                            <td>
+                                                {% if movement.movement_count > 1 %}
+                                                <span class="badge bg-primary">#{{ movement.first_id }}-{{ movement.last_id }}</span>
+                                                <small class="text-muted d-block">{{ movement.movement_count }} movimientos</small>
+                                                {% else %}
+                                                <span class="badge bg-secondary">#{{ movement.id }}</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <strong>{{ movement.item_name }}</strong>
+                                                {% if movement.serial_numbers and movement.serial_numbers|length <= 2 %}
+                                                <br><small class="text-muted">{{ movement.serial_numbers|join(', ') }}</small>
+                                                {% elif movement.serial_numbers and movement.serial_numbers|length > 2 %}
+                                                <br><small class="text-muted">{{ movement.serial_numbers[:2]|join(', ') }} y {{ movement.serial_numbers|length - 2 }} más</small>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <span class="badge {{ 'bg-success' if 'Entrada' in movement.movement_type else 'bg-warning' if 'Cambio' in movement.movement_type else 'bg-danger' }}">
+                                                    {{ movement.movement_type }}
+                                                </span>
+                                            </td>
+                                            <td>{{ movement.date.strftime('%Y-%m-%d %H:%M') if movement.date else 'N/A' }}</td>
+                                            <td>
+                                                <strong>{{ movement.total_quantity }}</strong>
+                                                {% if movement.movement_count > 1 %}
+                                                <small class="text-muted d-block">({{ movement.movement_count }} mov.)</small>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ movement.destination or 'N/A' }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    {% else %}
+                                        <tr>
+                                            <td colspan="6" class="text-center text-muted py-4">
+                                                <i class="fas fa-info-circle me-2"></i>
+                                                No hay movimientos registrados
+                                            </td>
+                                        </tr>
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Items Críticos -->
+            <div class="col-md-4 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-exclamation-circle me-2"></i> Items Críticos (Agrupados)
+                    </div>
+                    <div class="card-body">
+                        <div class="list-group list-group-flush">
+                            {% if critical_items %}
+                                {% for item in critical_items %}
+                                <div class="list-group-item">
+                                    <div class="d-flex w-100 justify-content-between align-items-center mb-2">
+                                        <h6 class="mb-0">{{ item.Name }}</h6>
+                                        <div class="text-end">
+                                            <strong class="text-danger">{{ item.TotalStock }} unidades</strong>
+                                            {% if item.ItemCount > 1 %}
+                                            <small class="text-muted d-block">({{ item.ItemCount }} items)</small>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="progress mb-2">
+                                        <div class="progress-bar bg-danger" 
+                                            style="width: {{ (item.TotalStock / 20) * 100 if item.TotalStock <= 20 else 100 }}%">
+                                        </div>
+                                    </div>
+                                    <small class="text-muted">
+                                        Stock crítico
+                                        {% if item.ItemCount > 1 %}
+                                        • Mínimo por item: {{ item.MinStock }}
+                                        {% endif %}
+                                    </small>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="list-group-item text-center py-4">
+                                    <i class="fas fa-check-circle me-2 text-success"></i>
+                                    <span class="text-muted">No hay items críticos</span>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Funcionalidad del buscador
+        document.getElementById('dashboardSearch').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const searchTerm = this.value.trim();
+                if (searchTerm) {
+                    window.location.href = `/inventario?search=${encodeURIComponent(searchTerm)}`;
+                }
+            }
+        });
+
+        // Búsqueda rápida por número de serie (opcional)
+        document.getElementById('dashboardSearch').addEventListener('input', function() {
+            const searchTerm = this.value.trim();
+            
+            // Si parece un número de serie (letras y números), mostrar sugerencia
+            if (searchTerm.length > 4 && /^[A-Za-z0-9]+$/.test(searchTerm)) {
+                this.placeholder = `Presiona Enter para buscar "${searchTerm}"`;
+            } else {
+                this.placeholder = 'Buscar en inventario...';
+            }
+        });
+    </script>
+</body>
+</html>

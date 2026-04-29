@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Proveedores</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/proveedores.css">
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0"><i class="fas fa-truck me-2"></i>Gestión de Proveedores</h4>
+                    <button class="btn btn-light" onclick="openAddModal()">
+                        <i class="fas fa-plus me-2"></i>Nuevo Proveedor
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Codigo</th>
+                                <th>Nombre</th>
+                                <th>Contacto</th>
+                                <th>Teléfono</th>
+                                <th>Email</th>
+                                <th>Dirección</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for supplier in suppliers %}
+                            <tr>
+                                <td>#{{ supplier.ID }}</td>
+                                <td>{{ supplier.Name }}</td>
+                                <td>{{ supplier.Contact or 'N/A' }}</td>
+                                <td>{{ supplier.Phone or 'N/A' }}</td>
+                                <td>{{ supplier.Email or 'N/A' }}</td>
+                                <td>{{ supplier.Address or 'N/A' }}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-primary" 
+                                            onclick="editSupplier({{ supplier.ID }}, '{{ supplier.Name }}', '{{ supplier.Contact or '' }}', '{{ supplier.Phone or '' }}', '{{ supplier.Email or '' }}', '{{ supplier.Address or '' }}', '{{ supplier.Notes or '' }}')">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-danger" onclick="deleteSupplier({{ supplier.ID }})">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Agregar/Editar -->
+    <div class="modal fade" id="supplierModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle">Nuevo Proveedor</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="supplierForm">
+                        <input type="hidden" id="supplierId">
+                        <div class="mb-3">
+                            <label class="form-label">Nombre</label>
+                            <input type="text" class="form-control" id="supplierName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Contacto</label>
+                            <input type="text" class="form-control" id="supplierContact">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Teléfono</label>
+                            <input type="tel" class="form-control" id="supplierPhone">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" id="supplierEmail">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Dirección</label>
+                            <textarea class="form-control" id="supplierAddress" rows="2"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Notas</label>
+                            <textarea class="form-control" id="supplierNotes" rows="2"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="saveSupplier()">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let supplierModal;
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            supplierModal = new bootstrap.Modal(document.getElementById('supplierModal'));
+        });
+
+        function openAddModal() {
+            document.getElementById('modalTitle').textContent = 'Nuevo Proveedor';
+            document.getElementById('supplierId').value = '';
+            document.getElementById('supplierForm').reset();
+            supplierModal.show();
+        }
+
+        function editSupplier(id, name, contact, phone, email, address, notes) {
+            document.getElementById('modalTitle').textContent = 'Editar Proveedor';
+            document.getElementById('supplierId').value = id;
+            document.getElementById('supplierName').value = name;
+            document.getElementById('supplierContact').value = contact;
+            document.getElementById('supplierPhone').value = phone;
+            document.getElementById('supplierEmail').value = email;
+            document.getElementById('supplierAddress').value = address;
+            document.getElementById('supplierNotes').value = notes;
+            supplierModal.show();
+        }
+
+        async function saveSupplier() {
+            const id = document.getElementById('supplierId').value;
+            const data = {
+                name: document.getElementById('supplierName').value,
+                contact: document.getElementById('supplierContact').value,
+                phone: document.getElementById('supplierPhone').value,
+                email: document.getElementById('supplierEmail').value,
+                address: document.getElementById('supplierAddress').value,
+                notes: document.getElementById('supplierNotes').value
+            };
+
+            if (!data.name) {
+                alert('El nombre es requerido');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/proveedores', {
+                    method: id ? 'PUT' : 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(id ? { ...data, id: parseInt(id) } : data)
+                });
+
+                if (response.ok) {
+                    supplierModal.hide();
+                    location.reload();
+                } else {
+                    const error = await response.json();
+                    alert(error.error || 'Error al guardar el proveedor');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al procesar la solicitud');
+            }
+        }
+
+        async function deleteSupplier(id) {
+            if (!confirm('¿Estás seguro de que quieres eliminar este proveedor?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/proveedores', {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ id })
+                });
+
+                if (response.ok) {
+                    location.reload();
+                } else {
+                    const error = await response.json();
+                    alert(error.error || 'Error al eliminar el proveedor');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al procesar la solicitud');
+            }
+        }
+    </script>
+</body>
+</html>
