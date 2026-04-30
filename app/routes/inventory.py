@@ -426,3 +426,103 @@ def edit_item(item_id):
         if request.method == 'POST':
             return jsonify({"error": error_message}), 400
         return render_template("error.html", error_message=error_message)
+
+@inventory_bp.route("/api/pending-purchases", methods=["GET"])
+def get_pending_purchases():
+    try:
+        from ..service.database.database import execute_query
+        
+        query = """
+            SELECT 
+                i.ID,
+                i.Name,
+                i.Stock,
+                i.MinimumStock,
+                (i.MinimumStock - i.Stock) AS Deficit,
+                COALESCE(pp.Status, 'pending') AS Status
+            FROM Items i
+            LEFT JOIN PendingPurchases pp ON i.ID = pp.ProductID AND pp.Status != 'finished'
+            WHERE i.Stock < i.MinimumStock
+            ORDER BY i.Name
+        """
+        
+        results = execute_query(query)
+        
+        pending_items = []
+        for row in results:
+            pending_items.append({
+                "id": row[0],
+                "name": row[1],
+                "stock": row[2],
+                "minimumStock": row[3],
+                "deficit": row[4],
+                "status": row[5]
+            })
+        
+        return jsonify(pending_items)
+    except Exception as e:
+        print(f"Error en get_pending_purchases: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+    
+@inventory_bp.route("/api/pending-purchases/mark", methods=["POST"])
+def mark_pending_purchase():
+    try:
+        from ..service.database.database import execute_query, execute_non_query
+        
+        data = request.get_json()
+        product_id = data.get("productId")
+        new_status = data.get("status")  # 'purchased' o 'pending'
+        
+        if not product_id:
+            return jsonify({"error": "productId es requerido"}), 400
+        
+        if new_status not in ["purchased", "pending"]:
+            return jsonify({"error": "status debe ser 'purchased' o 'pending'"}), 400
+        
+        if new_status == "purchased":
+            # Verificar si ya existe un registro pendiente o comprado
+            check_query = """
+                SELECT ID, Status FROM PendingPurchases
+                WHERE ProductID = ? AND Status != 'finished'
+            """
+            existing = execute_query(check_query, (product_id,))
+            
+            if existing and len(existing) > 0:
+                # Actualizar el registro existente
+                update_query = """
+                    UPDATE PendingPurchases
+                    SET Status = 'purchased', PurchaseDate = GETDATE()
+                    WHERE ProductID = ? AND Status != 'finished'
+                """
+                execute_non_query(update_query, (product_id,))
+            else:
+                # Crear nuevo registro
+                # Primero obtener el déficit del producto
+                deficit_query = """
+                    SELECT (MinimumStock - Stock) AS Deficit
+                    FROM Items
+                    WHERE ID = ?
+                """
+                deficit_result = execute_query(deficit_query, (product_id,))
+                suggested_qty = deficit_result[0][0] if deficit_result and len(deficit_result) > 0 else 1
+                
+                insert_query = """
+                    INSERT INTO PendingPurchases (ProductID, SuggestedQuantity, Status, PurchaseDate)
+                    VALUES (?, ?, 'purchased', GETDATE())
+                """
+                execute_non_query(insert_query, (product_id, suggested_qty))
+        
+        elif new_status == "pending":
+            # Cambiar a estado pending (desmarcar)
+            update_query = """
+                UPDATE PendingPurchases
+                SET Status = 'pending', PurchaseDate = NULL
+                WHERE ProductID = ? AND Status != 'finished'
+            """
+            execute_non_query(update_query, (product_id,))
+        
+        return jsonify({"success": True, "message": "Estado actualizado correctamente"})
+        
+    except Exception as e:
+        print(f"Error en mark_pending_purchase: {str(e)}")
+        return jsonify({"error": str(e)}), 500

@@ -12,6 +12,37 @@ from app.service.database.files_service import add_file
 nueva_entrada_bp = Blueprint("nueva_entrada", __name__)
 
 
+def check_and_finish_pending_purchase(product_id):
+    """Verifica si un producto ya no está bajo stock y actualiza su estado a finished"""
+    try:
+        from app.service.database.database import execute_query, execute_non_query
+        
+        query = """
+            SELECT Stock, MinimumStock 
+            FROM Items 
+            WHERE ID = ?
+        """
+        result = execute_query(query, (product_id,))
+        
+        if not result:
+            return
+        
+        stock = result[0][0]
+        minimum_stock = result[0][1]
+        
+        if stock >= minimum_stock:
+            update_query = """
+                UPDATE PendingPurchases
+                SET Status = 'finished'
+                WHERE ProductID = ? AND Status IN ('pending', 'purchased')
+            """
+            execute_non_query(update_query, (product_id,))
+            print(f"Producto {product_id} marcado como finished - Stock {stock} >= {minimum_stock}")
+            
+    except Exception as e:
+        print(f"Error en check_and_finish_pending_purchase: {str(e)}")
+
+
 @nueva_entrada_bp.route("/nueva-entrada", methods=["GET", "POST"])
 def nueva_entrada():
     if "user" not in session:
@@ -31,12 +62,10 @@ def nueva_entrada():
             )
 
         elif request.method == "POST":
-            # Obtener datos del formulario
             data = request.form.to_dict()
             filesData = request.files.getlist("files")
-            print("Datos del formulario recibidos:", data)  # Debug
+            print("Datos del formulario recibidos:", data)
             
-            # Validar costo unitario
             unit_cost = data.get("unit_cost")
             if not unit_cost:
                 return jsonify({"error": "El costo unitario es requerido"}), 400
@@ -48,8 +77,7 @@ def nueva_entrada():
             except ValueError:
                 return jsonify({"error": "El costo unitario debe ser un número válido"}), 400
 
-            # OBTENER LA MONEDA DEL FORMULARIO
-            currency = data.get("currency", "USD")  # USD por defecto si no se especifica
+            currency = data.get("currency", "USD")
             if currency not in ['USD', 'CRC']:
                 return jsonify({"error": "Moneda no válida"}), 400
 
@@ -75,7 +103,6 @@ def nueva_entrada():
                 raise ValueError("No se pudo obtener el ID del usuario")
 
             try:
-                # 1. Agregar el item con costo y moneda
                 item_data = {
                     "name": data.get("device_name"),
                     "description": data.get("model", ""),
@@ -92,15 +119,15 @@ def nueva_entrada():
                 item_result = add_item(**item_data)
                 item_id = item_result["ID"]
 
-                # 2. Agregar archivos si existen
-                add_file_responses = []
-                for file_url in file_urls:
-                    add_file_responses.append(add_file(item_id, file_url, "image"))
+                # Verificar si debe quitarse del checklist de compras pendientes
+                check_and_finish_pending_purchase(item_id)
 
-                # 3. Registrar el movimiento con información de costo y moneda
+                for file_url in file_urls:
+                    add_file(item_id, file_url, "image")
+
                 movement_data = {
                     "item_id": item_id,
-                    "movement_type_id": 4,  # Entrada
+                    "movement_type_id": 4,
                     "quantity": int(data.get("quantity", 1)),
                     "origin_user_id": user_id,
                     "responsible_user_id": user_id,
@@ -132,19 +159,15 @@ def nueva_entrada():
 
 @nueva_entrada_bp.route("/nueva-entrada-multiple", methods=["POST"])
 def nueva_entrada_multiple():
-    """Nueva ruta para manejar entradas múltiples con costos"""
     if "user" not in session:
         return jsonify({"error": "No autorizado"}), 401
 
     try:
-        # Obtener datos del formulario JSON
         data = request.get_json()
         
-        # Validar datos básicos
         if not data.get("supplierId") or not data.get("entries"):
             return jsonify({"error": "Datos incompletos"}), 400
         
-        # Obtener la moneda de la factura
         invoice_currency = data.get("invoiceCurrency", "USD")
         if invoice_currency not in ['USD', 'CRC']:
             return jsonify({"error": "Moneda de factura no válida"}), 400
@@ -162,10 +185,8 @@ def nueva_entrada_multiple():
         failed_entries = []
         total_cost_processed = 0
         
-        # Procesar cada entrada individual
         for entry in data["entries"]:
             try:
-                # Validar costo unitario
                 unit_cost = entry.get("unitCost")
                 if not unit_cost:
                     failed_entries.append({
@@ -189,7 +210,6 @@ def nueva_entrada_multiple():
                     })
                     continue
                 
-                # 1. Crear el item individual con costo
                 item_data = {
                     "name": entry["itemName"],
                     "description": f"{entry.get('description', '')} - Serie: {entry['serial']}",
@@ -198,7 +218,7 @@ def nueva_entrada_multiple():
                     "supplier_id": int(entry["supplierId"]),
                     "status_id": int(entry["statusId"]),
                     "location": entry["location"],
-                    "stock": 1,  # Cada serie es 1 unidad
+                    "stock": 1,
                     "unit_cost": unit_cost,
                     "currency": invoice_currency,
                 }
@@ -214,10 +234,12 @@ def nueva_entrada_multiple():
                 
                 item_id = item_result["ID"]
 
-                # 2. Registrar el movimiento de entrada con costo y moneda
+                # Verificar si debe quitarse del checklist de compras pendientes
+                check_and_finish_pending_purchase(item_id)
+
                 movement_data = {
                     "item_id": item_id,
-                    "movement_type_id": 4,  # Entrada
+                    "movement_type_id": 4,
                     "quantity": 1,
                     "origin_user_id": user_id,
                     "responsible_user_id": user_id,
@@ -247,7 +269,6 @@ def nueva_entrada_multiple():
                     "error": str(e)
                 })
 
-        # Preparar respuesta
         response = {
             "message": f"Procesadas {len(successful_entries)} entradas exitosamente",
             "successful_count": len(successful_entries),
