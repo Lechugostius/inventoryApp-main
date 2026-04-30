@@ -427,9 +427,6 @@ def edit_item(item_id):
             return jsonify({"error": error_message}), 400
         return render_template("error.html", error_message=error_message)
 
-
-        #GET para el Checklist
-
 @inventory_bp.route("/api/pending-purchases", methods=["GET"])
 def get_pending_purchases():
     try:
@@ -467,8 +464,6 @@ def get_pending_purchases():
         print(f"Error en get_pending_purchases: {str(e)}")
         return jsonify({"error": str(e)}), 500
     
-    #POST para Checklist
-
 @inventory_bp.route("/api/pending-purchases/mark", methods=["POST"])
 def mark_pending_purchase():
     try:
