@@ -32,7 +32,7 @@ def ensure_user_exists(azure_user_data):
         # Preparar datos del usuario
         name = azure_user_data.get('name')
         email = azure_user_data.get('preferred_username')
-        
+        w
         if not name or not email:
             print("Faltan datos necesarios del usuario")
             return None
