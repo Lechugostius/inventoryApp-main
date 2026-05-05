@@ -143,8 +143,8 @@ def export_excel():
         
     except Exception as e:
         return jsonify({"error": str(e)}), 400
-    
-@main_bp.route("/gestion/compras-pendientes")
+
+@main_bp.route("/compras-pendientes")
 def compras_pendientes():
     if "user" not in session:
         return redirect(url_for("auth.login"))

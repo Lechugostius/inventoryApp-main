@@ -451,12 +451,12 @@ def get_pending_purchases():
         pending_items = []
         for row in results:
             pending_items.append({
-                "id": row[0],
-                "name": row[1],
-                "stock": row[2],
-                "minimumStock": row[3],
-                "deficit": row[4],
-                "status": row[5]
+                "id": row["ID"],
+                "name": row["Name"],
+                "stock": row["Stock"],
+                "minimumStock": row["MinimumStock"],
+                "deficit": row["Deficit"],
+                "status": row["Status"]
             })
         
         return jsonify(pending_items)
@@ -504,7 +504,7 @@ def mark_pending_purchase():
                     WHERE ID = ?
                 """
                 deficit_result = execute_query(deficit_query, (product_id,))
-                suggested_qty = deficit_result[0][0] if deficit_result and len(deficit_result) > 0 else 1
+                suggested_qty = deficit_result[0]["Deficit"] if deficit_result and len(deficit_result) > 0 else 1
                 
                 insert_query = """
                     INSERT INTO PendingPurchases (ProductID, SuggestedQuantity, Status, PurchaseDate)
