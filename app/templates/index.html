@@ -9,26 +9,22 @@
     <link rel="stylesheet" href="/static/css/view.css">
 </head>
 <body class="main-layout">
-    <!-- Loading Overlay -->
     <div id="loadingOverlay" class="loading-overlay">
         <div class="spinner"></div>
     </div>
 
     <div id="wrapper">
-        <!-- Sidebar -->
         <div id="sidebar-wrapper">
             <div class="sidebar-heading d-flex align-items-center">
                 <i class="fas fa-boxes me-2"></i>
                 <span>Sistema de Inventario</span>
             </div>
             
-            <!-- Información del usuario -->
             <div class="user-info">
                 <i class="fas fa-user-circle me-2"></i>
                 <span>{{ user.name or 'Usuario' }}</span>
             </div>
 
-            <!-- Gestión de Inventario -->
             <div class="menu-section">
                 <div class="menu-section-title">Inventario</div>
                 <div class="list-group list-group-flush">
@@ -47,20 +43,21 @@
                 </div>
             </div>
 
-            <!-- Gestión de Items -->
             <div class="menu-section">
-                <div class="menu-section-title">Gestión</div>
+                <div class="menu-section-title">Gestion</div>
                 <div class="list-group list-group-flush">
                     <a class="list-group-item list-group-item-action" data-page="/categorias">
-                        <i class="fas fa-tags me-2"></i> Categorías
+                        <i class="fas fa-tags me-2"></i> Categorias
                     </a>
                     <a class="list-group-item list-group-item-action" data-page="/proveedores">
                         <i class="fas fa-truck me-2"></i> Proveedores
                     </a>
+                    <a class="list-group-item list-group-item-action" data-page="/compras-pendientes">
+                        <i class="fas fa-shopping-cart me-2"></i> Compras Pendientes
+                    </a>
                 </div>
             </div>
 
-            <!-- Reportes -->
             <div class="menu-section">
                 <div class="menu-section-title">Reportes</div>
                 <div class="list-group list-group-flush">
@@ -77,16 +74,14 @@
             </div>
         </div>
 
-        <!-- Contenido Principal -->
         <div id="content-wrapper">
             <iframe id="content-iframe" src="/dashboard"></iframe>
         </div>
 
-        <!-- Navegación móvil -->
         <nav class="mobile-nav">
             <div class="nav-item" id="toggleSidebar">
                 <i class="fas fa-bars"></i>
-                <span>Menú</span>
+                <span>Menu</span>
             </div>
             <div class="nav-item" data-page="/dashboard">
                 <i class="fas fa-home"></i>
@@ -106,51 +101,45 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const contentIframe = document.getElementById('content-iframe');
-            const loadingOverlay = document.getElementById('loadingOverlay');
-            const menuItems = document.querySelectorAll('.list-group-item, .mobile-nav .nav-item[data-page]');
-            const toggleSidebar = document.getElementById('toggleSidebar');
+            var iframe = document.getElementById('content-iframe');
+            var overlay = document.getElementById('loadingOverlay');
+            var items = document.querySelectorAll('.list-group-item, .mobile-nav .nav-item[data-page]');
+            var sidebarBtn = document.getElementById('toggleSidebar');
 
-            // Función para mostrar/ocultar el loading
-            function toggleLoading(show) {
-                loadingOverlay.style.visibility = show ? 'visible' : 'hidden';
+            function showLoading(show) {
+                overlay.style.visibility = show ? 'visible' : 'hidden';
             }
 
-            // Función para cambiar de página
-            function navigateToPage(page) {
-                toggleLoading(true);
-                contentIframe.src = page;
-                
-                // Remover la clase active de todos los items
-                menuItems.forEach(item => item.classList.remove('active'));
-                
-                // Agregar la clase active al item seleccionado
-                const activeItems = document.querySelectorAll(`[data-page="${page}"]`);
-                activeItems.forEach(item => item.classList.add('active'));
+            function goToPage(page) {
+                showLoading(true);
+                iframe.src = page;
+                for (var i = 0; i < items.length; i++) {
+                    items[i].classList.remove('active');
+                }
+                var actives = document.querySelectorAll('[data-page="' + page + '"]');
+                for (var i = 0; i < actives.length; i++) {
+                    actives[i].classList.add('active');
+                }
             }
 
-            // Event listener para el iframe cargado
-            contentIframe.addEventListener('load', function() {
-                toggleLoading(false);
+            iframe.addEventListener('load', function() {
+                showLoading(false);
             });
 
-            // Event listeners para los items del menú
-            menuItems.forEach(item => {
-                item.addEventListener('click', function() {
-                    const page = this.dataset.page;
+            for (var i = 0; i < items.length; i++) {
+                items[i].addEventListener('click', function(e) {
+                    var page = this.getAttribute('data-page');
                     if (page) {
-                        navigateToPage(page);
+                        goToPage(page);
                     }
                 });
-            });
+            }
 
-            // Toggle sidebar en móvil
-            toggleSidebar.addEventListener('click', function() {
+            sidebarBtn.addEventListener('click', function() {
                 document.body.classList.toggle('sidebar-open');
             });
 
-            // Cargar dashboard por defecto
-            navigateToPage('/dashboard');
+            goToPage('/dashboard');
         });
     </script>
 </body>

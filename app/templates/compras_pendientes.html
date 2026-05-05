@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h2 style="color: var(--primary-color)">
+                <i class="fas fa-shopping-cart me-2"></i>
+                Compras Pendientes
+            </h2>
+            <p class="text-muted">Productos con stock bajo que requieren atención</p>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h5><i class="fas fa-list me-2"></i>Lista de Productos Pendientes</h5>
+        </div>
+        <div class="card-body">
+            <div id="pending-purchases-container">
+                <div class="text-center py-3">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
+                    <p class="mt-2 text-muted">Cargando productos pendientes...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const PENDING_API_URL = '/api/pending-purchases';
+const PENDING_MARK_URL = '/api/pending-purchases/mark';
+
+async function loadPendingPurchases() {
+    const container = document.getElementById('pending-purchases-container');
+    if (!container) return;
+    
+    try {
+        const response = await fetch(PENDING_API_URL);
+        const products = await response.json();
+        
+        if (products.error) {
+            container.innerHTML = `<div class="alert alert-danger">Error: ${products.error}</div>`;
+            return;
+        }
+        
+        if (products.length === 0) {
+            container.innerHTML = `
+                <div class="text-center py-4">
+                    <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                    <p>No hay productos pendientes</p>
+                    <small class="text-muted">Todos los productos tienen stock suficiente</small>
+                </div>
+            `;
+            return;
+        }
+        
+        let html = '';
+        for (let i = 0; i < products.length; i++) {
+            const p = products[i];
+            const isChecked = p.status === 'purchased';
+            const badgeClass = isChecked ? 'badge-warning' : 'badge-danger';
+            const badgeText = isChecked ? 'Pedido realizado' : 'Crítico - Pendiente';
+            
+            html += `
+                <div class="card mb-2" data-id="${p.id}">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center gap-3">
+                            <input type="checkbox" class="pending-checkbox" data-id="${p.id}" ${isChecked ? 'checked' : ''}>
+                            <div class="flex-grow-1">
+                                <strong>${escapeHtml(p.name)}</strong>
+                                <span class="badge ${badgeClass} ms-2">${badgeText}</span>
+                                <div class="small text-muted mt-1">
+                                    Stock actual: ${p.stock} | Mínimo: ${p.minimumStock} | Déficit: ${p.deficit}
+                                </div>
+                                <div class="small mt-1">
+                                    <span class="badge bg-secondary">Sugerencia: Pedir ${p.deficit} unidades</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        container.innerHTML = html;
+        
+        document.querySelectorAll('.pending-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', async function(e) {
+                const productId = parseInt(this.getAttribute('data-id'));
+                const newStatus = this.checked ? 'purchased' : 'pending';
+                const cardDiv = this.closest('.card');
+                const badgeSpan = cardDiv.querySelector('.badge');
+                
+                if (!this.checked) {
+                    const confirmar = confirm('¿Estás seguro de quitar el check de este producto? El pedido se marcará como pendiente nuevamente.');
+                    if (!confirmar) {
+                        this.checked = true;
+                        return;
+                    }
+                }
+                
+                this.disabled = true;
+                
+                try {
+                    const response = await fetch(PENDING_MARK_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ productId: productId, status: newStatus })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        if (newStatus === 'purchased') {
+                            badgeSpan.className = 'badge bg-warning';
+                            badgeSpan.innerText = 'Pedido realizado';
+                        } else {
+                            badgeSpan.className = 'badge bg-danger';
+                            badgeSpan.innerText = 'Crítico - Pendiente';
+                        }
+                    } else {
+                        this.checked = !this.checked;
+                        alert('Error: ' + result.error);
+                    }
+                } catch (error) {
+                    this.checked = !this.checked;
+                    alert('Error de conexión al servidor');
+                } finally {
+                    this.disabled = false;
+                }
+            });
+        });
+        
+    } catch (error) {
+        console.error('Error:', error);
+        container.innerHTML = `<div class="alert alert-danger">Error al cargar los datos</div>`;
+    }
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+document.addEventListener('DOMContentLoaded', loadPendingPurchases);
+</script>
+
+<style>
+.badge-danger {
+    background-color: #dc3545;
+    color: white;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+}
+.badge-warning {
+    background-color: #ffc107;
+    color: #333;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+}
+</style>
+{% endblock %}
