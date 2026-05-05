@@ -3,9 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Administrador de Facturas - Taco Bell</title>
+    <title>{% block title %}Administrador de Facturas - Taco Bell{% endblock %}</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/view.css">
     <style>
-        body {
+        /* Estilos solo para la pantalla de bienvenida (no afectan a las páginas hijas) */
+        body.welcome-screen {
             margin: 0;
             padding: 0;
             display: flex;
@@ -16,7 +20,7 @@
             font-family: Arial, sans-serif;
         }
 
-        .container {
+        body.welcome-screen .container {
             text-align: center;
             color: #FFFFFF;
             padding: 20px;
@@ -26,17 +30,17 @@
             max-width: 400px;
         }
 
-        .logo {
+        body.welcome-screen .logo {
             width: 100px;
             margin-bottom: 10px;
         }
 
-        h1 {
+        body.welcome-screen h1 {
             font-size: 1.5rem;
             margin-bottom: 20px;
         }
 
-        h2 {
+        body.welcome-screen h2 {
             font-size: 1rem;
             margin-bottom: 20px;
             background-color: #7A3FC9;
@@ -44,13 +48,13 @@
             border-radius: 25px;
         }
 
-        .btn-group {
+        body.welcome-screen .btn-group {
             display: flex;
             flex-direction: column;
             gap: 15px;
         }
 
-        .btn {
+        body.welcome-screen .btn {
             background-color: #7A3FC9;
             color: #FFFFFF;
             padding: 10px;
@@ -63,16 +67,21 @@
             display: inline-block;
         }
 
-        .btn:hover {
+        body.welcome-screen .btn:hover {
             background-color: #9A65D8;
         }
     </style>
+    {% block extra_css %}{% endblock %}
 </head>
-<body>
+<body class="{% block body_class %}welcome-screen{% endblock %}">
+    {% block content %}
     <div class="container">
-        <img src="../static/images/TacoBell_Logo_Standard_White.png" alt="Logo Taco Bell" class="logo">
-        <h1>Bienvenido, {{ user['name'] }}</h1>
-        
+        <img src="/static/images/TacoBell_Logo_Standard_White.png" alt="Logo Taco Bell" class="logo">
+        <h1>Bienvenido, {{ user['name'] if user else 'Usuario' }}</h1>
     </div>
+    {% endblock %}
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+    {% block extra_js %}{% endblock %}
 </body>
 </html>

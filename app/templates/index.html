@@ -9,22 +9,26 @@
     <link rel="stylesheet" href="/static/css/view.css">
 </head>
 <body class="main-layout">
+    <!-- Loading Overlay -->
     <div id="loadingOverlay" class="loading-overlay">
         <div class="spinner"></div>
     </div>
 
     <div id="wrapper">
+        <!-- Sidebar -->
         <div id="sidebar-wrapper">
             <div class="sidebar-heading d-flex align-items-center">
                 <i class="fas fa-boxes me-2"></i>
                 <span>Sistema de Inventario</span>
             </div>
             
+            <!-- Información del usuario -->
             <div class="user-info">
                 <i class="fas fa-user-circle me-2"></i>
                 <span>{{ user.name or 'Usuario' }}</span>
             </div>
 
+            <!-- Gestión de Inventario -->
             <div class="menu-section">
                 <div class="menu-section-title">Inventario</div>
                 <div class="list-group list-group-flush">
@@ -40,24 +44,26 @@
                     <a class="list-group-item list-group-item-action" data-page="/registrarSalida">
                         <i class="fas fa-sign-out-alt me-2"></i> Registrar Salida
                     </a>
-                </div>
-            </div>
-
-            <div class="menu-section">
-                <div class="menu-section-title">Gestion</div>
-                <div class="list-group list-group-flush">
-                    <a class="list-group-item list-group-item-action" data-page="/categorias">
-                        <i class="fas fa-tags me-2"></i> Categorias
-                    </a>
-                    <a class="list-group-item list-group-item-action" data-page="/proveedores">
-                        <i class="fas fa-truck me-2"></i> Proveedores
-                    </a>
                     <a class="list-group-item list-group-item-action" data-page="/compras-pendientes">
                         <i class="fas fa-shopping-cart me-2"></i> Compras Pendientes
                     </a>
                 </div>
             </div>
 
+            <!-- Gestión de Items -->
+            <div class="menu-section">
+                <div class="menu-section-title">Gestión</div>
+                <div class="list-group list-group-flush">
+                    <a class="list-group-item list-group-item-action" data-page="/categorias">
+                        <i class="fas fa-tags me-2"></i> Categorías
+                    </a>
+                    <a class="list-group-item list-group-item-action" data-page="/proveedores">
+                        <i class="fas fa-truck me-2"></i> Proveedores
+                    </a>
+                </div>
+            </div>
+
+            <!-- Reportes -->
             <div class="menu-section">
                 <div class="menu-section-title">Reportes</div>
                 <div class="list-group list-group-flush">
@@ -74,14 +80,16 @@
             </div>
         </div>
 
+        <!-- Contenido Principal -->
         <div id="content-wrapper">
             <iframe id="content-iframe" src="/dashboard"></iframe>
         </div>
 
+        <!-- Navegación móvil -->
         <nav class="mobile-nav">
             <div class="nav-item" id="toggleSidebar">
                 <i class="fas fa-bars"></i>
-                <span>Menu</span>
+                <span>Menú</span>
             </div>
             <div class="nav-item" data-page="/dashboard">
                 <i class="fas fa-home"></i>
@@ -101,45 +109,51 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            var iframe = document.getElementById('content-iframe');
-            var overlay = document.getElementById('loadingOverlay');
-            var items = document.querySelectorAll('.list-group-item, .mobile-nav .nav-item[data-page]');
-            var sidebarBtn = document.getElementById('toggleSidebar');
+            const contentIframe = document.getElementById('content-iframe');
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            const menuItems = document.querySelectorAll('.list-group-item, .mobile-nav .nav-item[data-page]');
+            const toggleSidebar = document.getElementById('toggleSidebar');
 
-            function showLoading(show) {
-                overlay.style.visibility = show ? 'visible' : 'hidden';
+            // Función para mostrar/ocultar el loading
+            function toggleLoading(show) {
+                loadingOverlay.style.visibility = show ? 'visible' : 'hidden';
             }
 
-            function goToPage(page) {
-                showLoading(true);
-                iframe.src = page;
-                for (var i = 0; i < items.length; i++) {
-                    items[i].classList.remove('active');
-                }
-                var actives = document.querySelectorAll('[data-page="' + page + '"]');
-                for (var i = 0; i < actives.length; i++) {
-                    actives[i].classList.add('active');
-                }
+            // Función para cambiar de página
+            function navigateToPage(page) {
+                toggleLoading(true);
+                contentIframe.src = page;
+                
+                // Remover la clase active de todos los items
+                menuItems.forEach(item => item.classList.remove('active'));
+                
+                // Agregar la clase active al item seleccionado
+                const activeItems = document.querySelectorAll(`[data-page="${page}"]`);
+                activeItems.forEach(item => item.classList.add('active'));
             }
 
-            iframe.addEventListener('load', function() {
-                showLoading(false);
+            // Event listener para el iframe cargado
+            contentIframe.addEventListener('load', function() {
+                toggleLoading(false);
             });
 
-            for (var i = 0; i < items.length; i++) {
-                items[i].addEventListener('click', function(e) {
-                    var page = this.getAttribute('data-page');
+            // Event listeners para los items del menú
+            menuItems.forEach(item => {
+                item.addEventListener('click', function() {
+                    const page = this.dataset.page;
                     if (page) {
-                        goToPage(page);
+                        navigateToPage(page);
                     }
                 });
-            }
+            });
 
-            sidebarBtn.addEventListener('click', function() {
+            // Toggle sidebar en móvil
+            toggleSidebar.addEventListener('click', function() {
                 document.body.classList.toggle('sidebar-open');
             });
 
-            goToPage('/dashboard');
+            // Cargar dashboard por defecto
+            navigateToPage('/dashboard');
         });
     </script>
 </body>
