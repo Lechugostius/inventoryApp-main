@@ -2,29 +2,79 @@
 
 {% block content %}
 <div class="container-fluid p-4">
-    <div class="row mb-4">
-        <div class="col-md-6">
-            <h2 style="color: var(--primary-color)">
-                <i class="fas fa-shopping-cart me-2"></i>
-                Compras Pendientes
+
+    <!-- Header -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h2 class="mb-0 fs-4">
+                <i class="fas fa-shopping-cart me-2"></i>Compras Pendientes
             </h2>
-            <p class="text-muted">Productos con stock bajo que requieren atención</p>
+            <p class="mb-0 mt-1 small" style="color:rgba(255,255,255,0.7)">
+                Productos con stock bajo que requieren atención
+            </p>
         </div>
     </div>
 
-    <div class="card">
-        <div class="card-header">
-            <h5><i class="fas fa-list me-2"></i>Lista de Productos Pendientes</h5>
-        </div>
-        <div class="card-body">
-            <div id="pending-purchases-container">
-                <div class="text-center py-3">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Cargando...</span>
-                    </div>
-                    <p class="mt-2 text-muted">Cargando productos pendientes...</p>
+    <!-- Tabs -->
+    <div class="d-flex gap-4 mb-3" style="border-bottom:2px solid #ebebeb;">
+        <button class="cp-tab active" id="tab-pending" onclick="switchTab('pending')">
+            Pendientes <span id="badge-pending" class="cp-badge cp-badge-red">0</span>
+        </button>
+        <button class="cp-tab" id="tab-purchased" onclick="switchTab('purchased')">
+            Realizados <span id="badge-purchased" class="cp-badge cp-badge-green">0</span>
+        </button>
+    </div>
+
+    <!-- Panel Pendientes -->
+    <div id="panel-pending">
+        <div class="card">
+            <div class="card-body p-0" id="container-pending">
+                <div class="pending-spinner">
+                    <div class="spinner-border spinner-border-sm me-2"></div>
+                    <span style="color:#888">Cargando...</span>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Panel Realizados -->
+    <div id="panel-purchased" class="d-none">
+        <div class="card">
+            <div class="card-body p-0" id="container-purchased"></div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Modal -->
+<div id="confirm-modal" class="d-none" style="
+    position:fixed;inset:0;z-index:9999;
+    background:rgba(0,0,0,0.4);
+    backdrop-filter:blur(3px);
+    display:flex;align-items:center;justify-content:center;">
+    <div style="
+        background:#fff;
+        border:1px solid #eee;
+        border-radius:14px;
+        padding:28px 24px;
+        max-width:360px;width:90%;
+        box-shadow:0 10px 40px rgba(0,0,0,0.15);">
+        <p style="font-weight:700;color:#333;margin-bottom:8px;font-size:0.95rem;">
+            <i class="fas fa-exclamation-triangle me-2" style="color:#ffc107"></i>¿Deshacer pedido?
+        </p>
+        <p id="modal-message" style="font-size:0.85rem;color:#777;margin-bottom:20px;line-height:1.5;"></p>
+        <div class="d-flex gap-2 justify-content-end">
+            <button id="modal-cancel" style="
+                background:#f5f5f5;border:1px solid #ddd;color:#555;
+                padding:7px 16px;border-radius:8px;font-size:0.83rem;cursor:pointer;">
+                Cancelar
+            </button>
+            <button id="modal-confirm" style="
+                background:#dc3545;border:none;color:#fff;
+                padding:7px 16px;border-radius:8px;
+                font-size:0.83rem;font-weight:600;cursor:pointer;">
+                Sí, devolver
+            </button>
         </div>
     </div>
 </div>
@@ -32,140 +82,249 @@
 
 {% block extra_js %}
 <script>
-const PENDING_API_URL = '/api/pending-purchases';
+const PENDING_API_URL  = '/api/pending-purchases';
 const PENDING_MARK_URL = '/api/pending-purchases/mark';
+let allProducts = [];
 
-async function loadPendingPurchases() {
-    const container = document.getElementById('pending-purchases-container');
+function switchTab(tab) {
+    document.querySelectorAll('.cp-tab').forEach(b => b.classList.remove('active'));
+    ['pending','purchased'].forEach(t =>
+        document.getElementById('panel-' + t).classList.toggle('d-none', t !== tab)
+    );
+    document.getElementById('tab-' + tab).classList.add('active');
+}
+
+function showConfirmModal(name) {
+    return new Promise(resolve => {
+        const modal = document.getElementById('confirm-modal');
+        document.getElementById('modal-message').innerHTML =
+            `<strong>${escapeHtml(name)}</strong> volverá a la lista de Pendientes. ¿Confirmas?`;
+        modal.classList.remove('d-none');
+        document.getElementById('modal-confirm').onclick = () => { modal.classList.add('d-none'); resolve(true); };
+        document.getElementById('modal-cancel').onclick  = () => { modal.classList.add('d-none'); resolve(false); };
+    });
+}
+
+function renderProducts() {
+    const pending   = allProducts.filter(p => p.status !== 'purchased');
+    const purchased = allProducts.filter(p => p.status === 'purchased');
+    document.getElementById('badge-pending').textContent   = pending.length;
+    document.getElementById('badge-purchased').textContent = purchased.length;
+    renderList('container-pending',   pending,   false);
+    renderList('container-purchased', purchased, true);
+}
+
+function renderList(containerId, products, isPurchased) {
+    const container = document.getElementById(containerId);
     if (!container) return;
-    
+
+    if (products.length === 0) {
+        container.innerHTML = `
+            <div class="pending-empty">
+                <i class="fas ${isPurchased ? 'fa-inbox' : 'fa-check-circle'}"></i>
+                <p class="mb-0 mt-2">
+                    ${isPurchased ? 'Sin pedidos realizados aún' : '¡Todo en orden! Sin productos críticos'}
+                </p>
+            </div>`;
+        return;
+    }
+
+    container.innerHTML = `
+        <div class="cp-list-header">
+            <span>Producto</span>
+            <span>Detalles</span>
+        </div>
+        ${products.map(p => `
+        <div class="cp-row ${isPurchased ? 'cp-row-done' : ''}">
+            <div class="cp-row-left">
+                <label class="cp-check-wrap">
+                    <input type="checkbox" class="product-checkbox"
+                        data-id="${p.id}" data-name="${escapeHtml(p.name)}"
+                        ${isPurchased ? 'checked' : ''}>
+                    <span class="cp-box">
+                        <i class="fas fa-check" style="font-size:9px;color:#fff;"></i>
+                    </span>
+                </label>
+                <span class="cp-name">${escapeHtml(p.name)}</span>
+            </div>
+            <div class="cp-row-right">
+                <span class="cp-pill">Stock: <strong>${p.stock}</strong></span>
+                <span class="cp-pill">Mín: <strong>${p.minimumStock}</strong></span>
+                <span class="cp-pill cp-pill-red">-${p.deficit} uds</span>
+            </div>
+        </div>`).join('')}`;
+
+    container.querySelectorAll('.product-checkbox').forEach(cb =>
+        cb.addEventListener('change', handleCheckboxChange)
+    );
+}
+
+async function handleCheckboxChange(e) {
+    const cb        = e.target;
+    const id        = parseInt(cb.getAttribute('data-id'));
+    const name      = cb.getAttribute('data-name');
+    const newStatus = cb.checked ? 'purchased' : 'pending';
+
+    if (!cb.checked) {
+        cb.checked = true;
+        const ok = await showConfirmModal(name);
+        if (!ok) return;
+        cb.checked = false;
+    }
+
+    cb.disabled = true;
     try {
-        const response = await fetch(PENDING_API_URL);
-        const products = await response.json();
-        
-        if (products.error) {
-            container.innerHTML = `<div class="alert alert-danger">Error: ${products.error}</div>`;
-            return;
-        }
-        
-        if (products.length === 0) {
-            container.innerHTML = `
-                <div class="text-center py-4">
-                    <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
-                    <p>No hay productos pendientes</p>
-                    <small class="text-muted">Todos los productos tienen stock suficiente</small>
-                </div>
-            `;
-            return;
-        }
-        
-        let html = '';
-        for (let i = 0; i < products.length; i++) {
-            const p = products[i];
-            const isChecked = p.status === 'purchased';
-            const badgeClass = isChecked ? 'badge-warning' : 'badge-danger';
-            const badgeText = isChecked ? 'Pedido realizado' : 'Crítico - Pendiente';
-            
-            html += `
-                <div class="card mb-2" data-id="${p.id}">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center gap-3">
-                            <input type="checkbox" class="pending-checkbox" data-id="${p.id}" ${isChecked ? 'checked' : ''}>
-                            <div class="flex-grow-1">
-                                <strong>${escapeHtml(p.name)}</strong>
-                                <span class="badge ${badgeClass} ms-2">${badgeText}</span>
-                                <div class="small text-muted mt-1">
-                                    Stock actual: ${p.stock} | Mínimo: ${p.minimumStock} | Déficit: ${p.deficit}
-                                </div>
-                                <div class="small mt-1">
-                                    <span class="badge bg-secondary">Sugerencia: Pedir ${p.deficit} unidades</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-        
-        container.innerHTML = html;
-        
-        document.querySelectorAll('.pending-checkbox').forEach(checkbox => {
-            checkbox.addEventListener('change', async function(e) {
-                const productId = parseInt(this.getAttribute('data-id'));
-                const newStatus = this.checked ? 'purchased' : 'pending';
-                const cardDiv = this.closest('.card');
-                const badgeSpan = cardDiv.querySelector('.badge');
-                
-                if (!this.checked) {
-                    const confirmar = confirm('¿Estás seguro de quitar el check de este producto? El pedido se marcará como pendiente nuevamente.');
-                    if (!confirmar) {
-                        this.checked = true;
-                        return;
-                    }
-                }
-                
-                this.disabled = true;
-                
-                try {
-                    const response = await fetch(PENDING_MARK_URL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ productId: productId, status: newStatus })
-                    });
-                    
-                    const result = await response.json();
-                    
-                    if (result.success) {
-                        if (newStatus === 'purchased') {
-                            badgeSpan.className = 'badge bg-warning';
-                            badgeSpan.innerText = 'Pedido realizado';
-                        } else {
-                            badgeSpan.className = 'badge bg-danger';
-                            badgeSpan.innerText = 'Crítico - Pendiente';
-                        }
-                    } else {
-                        this.checked = !this.checked;
-                        alert('Error: ' + result.error);
-                    }
-                } catch (error) {
-                    this.checked = !this.checked;
-                    alert('Error de conexión al servidor');
-                } finally {
-                    this.disabled = false;
-                }
-            });
+        const res    = await fetch(PENDING_MARK_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ productId: id, status: newStatus })
         });
-        
-    } catch (error) {
-        console.error('Error:', error);
-        container.innerHTML = `<div class="alert alert-danger">Error al cargar los datos</div>`;
+        const result = await res.json();
+        if (result.success) {
+            const p = allProducts.find(x => x.id === id);
+            if (p) p.status = newStatus;
+            renderProducts();
+            switchTab(newStatus === 'purchased' ? 'purchased' : 'pending');
+        } else {
+            alert('Error: ' + result.error);
+            cb.checked = !cb.checked;
+        }
+    } catch {
+        alert('Error de conexión');
+        cb.checked = !cb.checked;
+    } finally {
+        cb.disabled = false;
     }
 }
 
-function escapeHtml(text) {
-    if (!text) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+async function loadPendingPurchases() {
+    try {
+        const res  = await fetch(PENDING_API_URL);
+        const data = await res.json();
+        if (data.error) {
+            document.getElementById('container-pending').innerHTML =
+                `<div class="alert alert-danger m-3">Error: ${data.error}</div>`;
+            return;
+        }
+        allProducts = data;
+        renderProducts();
+    } catch {
+        document.getElementById('container-pending').innerHTML =
+            `<div class="alert alert-danger m-3">Error al cargar los datos</div>`;
+    }
+}
+
+function escapeHtml(t) {
+    if (!t) return '';
+    const d = document.createElement('div');
+    d.textContent = t;
+    return d.innerHTML;
 }
 
 document.addEventListener('DOMContentLoaded', loadPendingPurchases);
 </script>
 
 <style>
-.badge-danger {
-    background-color: #dc3545;
-    color: white;
-    padding: 3px 8px;
-    border-radius: 12px;
-    font-size: 0.7rem;
+/* ── Tabs ─────────────────────────────────────────────────────────────────── */
+.cp-tab {
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: #ffffff;
+    padding: 8px 2px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: -2px;
 }
-.badge-warning {
-    background-color: #ffc107;
-    color: #333;
-    padding: 3px 8px;
-    border-radius: 12px;
+.cp-tab:hover  { color: #333; }
+.cp-tab.active { color: #333; border-bottom-color: var(--primary-color); }
+
+.cp-badge {
     font-size: 0.7rem;
+    font-weight: 700;
+    border-radius: 20px;
+    padding: 1px 8px;
+}
+.cp-badge-red   { background:#fde8ea; color:#dc3545; }
+.cp-badge-green { background:#e8f5e9; color:#198754; }
+
+/* ── List Header ──────────────────────────────────────────────────────────── */
+.cp-list-header {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 20px;
+    font-size: 0.71rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #1b1b1b;
+    border-bottom: 1px solid #f0f0f0;
+    background: #fafafa;
+}
+
+/* ── Rows ─────────────────────────────────────────────────────────────────── */
+.cp-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 13px 20px;
+    border-bottom: 1px solid #f5f5f5;
+    transition: background 0.15s;
+    gap: 12px;
+}
+.cp-row:last-child { border-bottom: none; }
+.cp-row:hover      { background: #fafafa; }
+.cp-row.cp-row-done { opacity: 0.45; }
+.cp-row.cp-row-done .cp-name { text-decoration: line-through; color: #aaa; }
+
+.cp-row-left  { display:flex; align-items:center; gap:12px; }
+.cp-row-right { display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+
+/* ── Name ─────────────────────────────────────────────────────────────────── */
+.cp-name {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: #333;
+}
+
+/* ── Pills ────────────────────────────────────────────────────────────────── */
+.cp-pill {
+    font-size: 0.75rem;
+    color: #777;
+    background: #f0f0f0;
+    border-radius: 6px;
+    padding: 3px 9px;
+    white-space: nowrap;
+}
+.cp-pill-red {
+    color: #dc3545;
+    background: #fde8ea;
+    font-weight: 600;
+}
+
+/* ── Checkbox ─────────────────────────────────────────────────────────────── */
+.cp-check-wrap { cursor:pointer; display:flex; }
+.cp-check-wrap input { display:none; }
+.cp-box {
+    width: 19px;
+    height: 19px;
+    border-radius: 5px;
+    border: 2px solid #ddd;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    background: #fff;
+}
+.cp-check-wrap:hover .cp-box { border-color: var(--primary-color); }
+.cp-check-wrap input:checked ~ .cp-box {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
 }
 </style>
 {% endblock %}
