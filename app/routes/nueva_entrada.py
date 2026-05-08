@@ -234,6 +234,9 @@ def nueva_entrada_multiple():
                 
                 item_id = item_result["ID"]
 
+
+                #-----------------------------------------------------------------
+
                 # Verificar si debe quitarse del checklist de compras pendientes
                 check_and_finish_pending_purchase(item_id)
 
