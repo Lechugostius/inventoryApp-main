@@ -432,17 +432,23 @@ def get_pending_purchases():
     try:
         from ..service.database.database import execute_query
         
+        # Agrupamos por nombre del producto: sumamos el stock total de todas
+        # las filas con el mismo Name y comparamos contra el minimo mas alto
+        # del grupo. Asi 2 unidades del mismo producto cuentan como 1 producto
+        # con stock bajo, no como 2.
         query = """
             SELECT 
-                i.ID,
-                i.Name,
-                i.Stock,
-                i.MinimumStock,
-                (i.MinimumStock - i.Stock) AS Deficit,
-                COALESCE(pp.Status, 'pending') AS Status
+                MIN(i.ID)             AS ID,
+                i.Name                AS Name,
+                SUM(i.Stock)          AS Stock,
+                MAX(i.MinimumStock)   AS MinimumStock,
+                (MAX(i.MinimumStock) - SUM(i.Stock)) AS Deficit,
+                COALESCE(MAX(pp.Status), 'pending')  AS Status
             FROM Items i
-            LEFT JOIN PendingPurchases pp ON i.ID = pp.ProductID AND pp.Status != 'finished'
-            WHERE i.Stock < i.MinimumStock
+            LEFT JOIN PendingPurchases pp 
+                   ON i.ID = pp.ProductID AND pp.Status != 'finished'
+            GROUP BY i.Name
+            HAVING SUM(i.Stock) < MAX(i.MinimumStock)
             ORDER BY i.Name
         """
         

@@ -221,11 +221,25 @@ function addNewItem() {
   itemsContainer.appendChild(itemCard);
   updateSerialInputs(itemCounter);
   updateCostSummary();
+  renumberProducts();
+}
+
+function renumberProducts() {
+  // Renumera el texto "Producto #N" en todas las tarjetas existentes
+  // según su posición actual, sin tocar los IDs internos.
+  const cards = document.querySelectorAll('.item-card');
+  cards.forEach((card, index) => {
+    const title = card.querySelector('h6.text-primary');
+    if (title) {
+      title.innerHTML = `<i class="fas fa-box me-2"></i>Producto #${index + 1}`;
+    }
+  });
 }
 
 function removeItem(itemId) {
   const itemCard = document.getElementById(`item-${itemId}`);
   itemCard.remove();
+  renumberProducts();
   
   const remainingItems = document.querySelectorAll('.item-card').length;
   if (remainingItems === 0) {
