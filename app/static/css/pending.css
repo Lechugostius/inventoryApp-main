@@ -1,0 +1,177 @@
+/* ── Tabs ─────────────────────────────────────────────────────────────────── */
+.cp-tab {
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: #888;
+    padding: 8px 2px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: -2px;
+}
+.cp-tab:hover  { color: #ffffff; }
+.cp-tab.active { color: #ffffff; border-bottom-color: var(--primary-color); }
+
+.cp-badge {
+    font-size: 0.7rem;
+    font-weight: 700;
+    border-radius: 20px;
+    padding: 1px 8px;
+}
+.cp-badge-red   { background:#fde8ea; color:#dc3545; }
+.cp-badge-green { background:#e8f5e9; color:#198754; }
+
+/* ── List Header ──────────────────────────────────────────────────────────── */
+.cp-list-header {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 20px;
+    font-size: 0.71rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #bbb;
+    border-bottom: 1px solid #f0f0f0;
+    background: #fafafa;
+}
+
+/* ── Rows ─────────────────────────────────────────────────────────────────── */
+.cp-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 13px 20px;
+    border-bottom: 1px solid #f5f5f5;
+    transition: background 0.15s;
+    gap: 12px;
+}
+.cp-row:last-child { border-bottom: none; }
+.cp-row:hover      { background: #fafafa; }
+.cp-row.cp-row-done { opacity: 0.45; }
+.cp-row.cp-row-done .cp-name { text-decoration: line-through; color: #aaa; }
+
+.cp-row-left  { display: flex; align-items: center; gap: 12px; }
+.cp-row-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+
+/* ── Name ─────────────────────────────────────────────────────────────────── */
+.cp-name {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: #333;
+}
+
+/* ── Pills ────────────────────────────────────────────────────────────────── */
+.cp-pill {
+    font-size: 0.75rem;
+    color: #777;
+    background: #f0f0f0;
+    border-radius: 6px;
+    padding: 3px 9px;
+    white-space: nowrap;
+}
+.cp-pill-red {
+    color: #dc3545;
+    background: #fde8ea;
+    font-weight: 600;
+}
+
+/* ── Checkbox ─────────────────────────────────────────────────────────────── */
+.cp-check-wrap { cursor: pointer; display: flex; }
+.cp-check-wrap input { display: none; }
+.cp-box {
+    width: 19px;
+    height: 19px;
+    border-radius: 5px;
+    border: 2px solid #ddd;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    background: #fff;
+}
+.cp-check-wrap:hover .cp-box { border-color: var(--primary-color); }
+.cp-check-wrap input:checked ~ .cp-box {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+/* ── Empty state ──────────────────────────────────────────────────────────── */
+.pending-empty {
+    text-align: center;
+    padding: 40px;
+    color: #6c757d;
+    background: white;
+    border-radius: 8px;
+}
+.pending-empty i {
+    font-size: 2rem;
+    margin-bottom: 10px;
+    color: #28a745;
+}
+
+/* ── Modal ────────────────────────────────────────────────────────────────── */
+.cp-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(0,0,0,0.4);
+    backdrop-filter: blur(3px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.cp-modal-overlay.d-none { display: none !important; }
+.cp-modal-box {
+    background: #fff;
+    border: 1px solid #eee;
+    border-radius: 14px;
+    padding: 28px 24px;
+    max-width: 360px;
+    width: 90%;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+    animation: fadeUp 0.18s ease;
+}
+@keyframes fadeUp {
+    from { transform: translateY(8px); opacity: 0; }
+    to   { transform: translateY(0);   opacity: 1; }
+}
+.cp-modal-title {
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 8px;
+    font-size: 0.95rem;
+}
+.cp-modal-msg {
+    font-size: 0.85rem;
+    color: #777;
+    margin-bottom: 20px;
+    line-height: 1.5;
+}
+.cp-btn-cancel {
+    background: #f5f5f5;
+    border: 1px solid #ddd;
+    color: #555;
+    padding: 7px 16px;
+    border-radius: 8px;
+    font-size: 0.83rem;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.cp-btn-cancel:hover { background: #ebebeb; }
+.cp-btn-confirm {
+    background: #dc3545;
+    border: none;
+    color: #fff;
+    padding: 7px 16px;
+    border-radius: 8px;
+    font-size: 0.83rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.cp-btn-confirm:hover { background: #bb2d3b; }
