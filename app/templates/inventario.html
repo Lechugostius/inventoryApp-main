@@ -316,6 +316,15 @@
             color: white;
         }
 
+        .btn-mobile.btn-delete {
+            background: #dc3545;
+            color: white;
+        }
+        .btn-mobile.btn-delete:hover {
+            background: #b02a37;
+            color: white;
+        }
+
         .btn-mobile.btn-edit {
             background: #17a2b8;
             color: white;
@@ -699,6 +708,9 @@
                                         <button class="btn btn-sm btn-primary" onclick="editItem({{ item.ID }})">
                                             <i class="fas fa-edit"></i>
                                         </button>
+                                        <button class="btn btn-sm btn-danger" onclick="deleteItem({{ item.ID }}, '{{ item.Name|replace("'", "\\'") }}')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -749,13 +761,15 @@
                             <div class="detail-value-mobile">{{ item.RegistrationDate.strftime('%d/%m/%Y') if item.RegistrationDate else 'N/A' }}</div>
                         </div>
                     </div>
-                    
                     <div class="item-actions-mobile">
                         <button class="btn-mobile btn-view" onclick="viewItem({{ item.ID }})">
                             <i class="fas fa-eye me-1"></i>Ver
                         </button>
                         <button class="btn-mobile btn-edit" onclick="editItem({{ item.ID }})">
                             <i class="fas fa-edit me-1"></i>Editar
+                        </button>
+                        <button class="btn-mobile btn-delete" onclick="deleteItem({{ item.ID }})" data-name="{{ item.Name }}">
+                            <i class="fas fa-trash me-1"></i>Eliminar
                         </button>
                     </div>
                 </div>
@@ -820,6 +834,35 @@
 
         function editItem(id) {
             window.location.href = `/item/${id}/edit`;
+        }
+
+        async function deleteItem(id) {
+            // Obtener el nombre del item desde el botón que disparó el evento
+            const name = event.currentTarget.getAttribute('data-name') || 'este item';
+
+            const confirmed = confirm(
+                `¿Estás seguro de que deseas eliminar el item "${name}"?\n\n` +
+                `Esta acción quedará registrada en el historial.`
+            );
+            if (!confirmed) return;
+
+            try {
+                const response = await fetch(`/item/${id}/delete`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    alert('Item eliminado correctamente');
+                    location.reload();
+                } else {
+                    alert('Error al eliminar: ' + (result.error || 'desconocido'));
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error de red al eliminar el item');
+            }
         }
 
         // Toggle filtros móviles

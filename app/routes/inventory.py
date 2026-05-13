@@ -83,6 +83,10 @@ def inventario():
             category_id=int(category) if category else None,
             status_id=int(status) if status else None
         ) or []
+
+        # Excluir items marcados como eliminados (eliminacion logica)
+        DELETED_STATUS_ID = 4   # <-- AJUSTAR si tu ID es diferente
+        items = [i for i in items if i.get("StatusID") != DELETED_STATUS_ID]
         
         # Obtener datos para los filtros
         categories = get_all_categories() or []
@@ -447,6 +451,7 @@ def get_pending_purchases():
             FROM Items i
             LEFT JOIN PendingPurchases pp 
                    ON i.ID = pp.ProductID AND pp.Status != 'finished'
+            WHERE i.StatusID <> 4   -- Excluir items marcados como eliminados
             GROUP BY i.Name
             HAVING SUM(i.Stock) < MAX(i.MinimumStock)
             ORDER BY i.Name
@@ -532,3 +537,57 @@ def mark_pending_purchase():
     except Exception as e:
         print(f"Error en mark_pending_purchase: {str(e)}")
         return jsonify({"error": str(e)}), 500
+    
+@inventory_bp.route("/item/<int:item_id>/delete", methods=["POST"])
+def delete_item(item_id):
+    """
+    Eliminacion logica: marca el item con StatusID = Eliminado y stock = 0.
+    """
+    if "user" not in session:
+        return jsonify({"success": False, "error": "No autorizado"}), 401
+
+    try:
+        from ..service.database.database import get_connection
+
+        # ID del estado "Eliminado" creado en la BD
+        DELETED_STATUS_ID = 4   # <-- AJUSTAR si tu ID es diferente
+
+        conn = get_connection()
+        with conn.cursor() as cursor:
+            cursor.execute(
+                "SELECT ID, Name, StatusID, Stock FROM Items WHERE ID = ?",
+                (item_id,)
+            )
+            row = cursor.fetchone()
+            if not row:
+                return jsonify({"success": False, "error": "Item no encontrado"}), 404
+
+            current_status = row[2]
+            current_stock = row[3] if row[3] is not None else 0
+
+            if current_status == DELETED_STATUS_ID:
+                return jsonify({"success": False, "error": "El item ya estaba eliminado"}), 400
+
+            cursor.execute("""
+                UPDATE Items
+                SET StatusID = ?, Stock = 0
+                WHERE ID = ?
+            """, (DELETED_STATUS_ID, item_id))
+
+            try:
+                user_id = session["user"].get("id") or session["user"].get("ID") or 1
+            except (AttributeError, TypeError):
+                user_id = 1
+
+            cursor.execute("""
+                INSERT INTO ChangeHistory (ItemID, ModifiedField, PreviousValue, NewValue, UserID)
+                VALUES (?, 'ELIMINADO', ?, 'Eliminado', ?)
+            """, (item_id, f"Stock previo: {current_stock}", user_id))
+
+            conn.commit()
+
+        return jsonify({"success": True, "message": "Item eliminado correctamente"})
+
+    except Exception as e:
+        print(f"Error en delete_item: {str(e)}")
+        return jsonify({"success": False, "error": str(e)}), 500
