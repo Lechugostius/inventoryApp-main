@@ -175,3 +175,10 @@
     transition: background 0.2s;
 }
 .cp-btn-confirm:hover { background: #bb2d3b; }
+
+/* ── Scroll en lista larga ─────────────────────────────────────────────────── */
+#container-pending,
+#container-purchased {
+    max-height: 480px;
+    overflow-y: auto;
+}

@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, jsonify, session, redirect, url_fo
 
 from app.service.database.items_service import get_all_items
 
-compras_pendientes_bp = Blueprint("compras_pendientes", __name__)
+compras_pendientes_bp = Blueprint("compras_pendientes", _name_)
 
 # Umbral de stock mínimo (igual que el usado en dashboard.py)
 MINIMUM_STOCK_THRESHOLD = 5

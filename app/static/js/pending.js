@@ -123,7 +123,9 @@ async function handleCheckboxChange(e) {
 // ── Load ──────────────────────────────────────────────────────────────────────
 async function loadPendingPurchases() {
     try {
-        const res  = await fetch(PENDING_API_URL);
+        const res  = await fetch(PENDING_API_URL, {
+    headers: { 'Authorization': 'Bearer inventariotaco26' }
+});
         const data = await res.json();
         if (data.error) {
             document.getElementById('container-pending').innerHTML =
