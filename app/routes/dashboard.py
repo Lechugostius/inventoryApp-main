@@ -89,6 +89,8 @@ def dashboard():
         
         # 1. Obtener todos los items y calcular el stock total
         all_items = get_all_items()
+        # Excluir items marcados como eliminados (StatusID = 4)
+        all_items = [i for i in all_items if i.get("StatusID") != 4]
         total_stock = sum(item.get('Stock', 0) for item in all_items)
         
         # 2. Obtener items con bajo stock (menos de 5 unidades)
