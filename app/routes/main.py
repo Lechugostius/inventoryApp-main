@@ -16,6 +16,7 @@ from .categorias import categorias_bp
 from .proveedores import proveedores_bp
 from .informes import informes_bp
 from .historial import historial_bp
+from .reports import reports_bp
 
 main_bp = Blueprint("main", __name__)
 
@@ -27,6 +28,7 @@ main_bp.register_blueprint(categorias_bp)
 main_bp.register_blueprint(proveedores_bp)
 main_bp.register_blueprint(informes_bp)
 main_bp.register_blueprint(historial_bp)
+main_bp.register_blueprint(reports_bp)
 
 @main_bp.route("/")
 def index():

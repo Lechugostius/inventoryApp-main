@@ -325,6 +325,7 @@
             color: white;
         }
 
+
         .btn-mobile.btn-edit {
             background: #17a2b8;
             color: white;
@@ -701,6 +702,7 @@
                                     </td>
                                     <td>{{ item.Location or 'N/A' }}</td>
                                     <td>{{ item.RegistrationDate.strftime('%Y-%m-%d %H:%M') if item.RegistrationDate else 'N/A' }}</td>
+                                   
                                     <td>
                                         <button class="btn btn-sm btn-primary" onclick="viewItem({{ item.ID }})">
                                             <i class="fas fa-eye"></i>
@@ -708,10 +710,11 @@
                                         <button class="btn btn-sm btn-primary" onclick="editItem({{ item.ID }})">
                                             <i class="fas fa-edit"></i>
                                         </button>
-                                        <button class="btn btn-sm btn-danger" onclick="deleteItem({{ item.ID }}, '{{ item.Name|replace("'", "\\'") }}')">
+                                        <button class="btn btn-sm btn-danger" onclick="deleteItem({{ item.ID }})" data-name="{{ item.Name }}">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </td>
+
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -761,6 +764,8 @@
                             <div class="detail-value-mobile">{{ item.RegistrationDate.strftime('%d/%m/%Y') if item.RegistrationDate else 'N/A' }}</div>
                         </div>
                     </div>
+                    
+                    
                     <div class="item-actions-mobile">
                         <button class="btn-mobile btn-view" onclick="viewItem({{ item.ID }})">
                             <i class="fas fa-eye me-1"></i>Ver
@@ -772,6 +777,7 @@
                             <i class="fas fa-trash me-1"></i>Eliminar
                         </button>
                     </div>
+
                 </div>
                 {% endfor %}
                 
@@ -864,6 +870,7 @@
                 alert('Error de red al eliminar el item');
             }
         }
+
 
         // Toggle filtros móviles
         function toggleFilters() {
