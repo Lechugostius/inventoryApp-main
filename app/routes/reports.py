@@ -239,11 +239,11 @@ def _build_pdf(fecha_desde, fecha_hasta):
             (MAX(i.MinimumStock) - SUM(i.Stock))    AS Deficit
         FROM Items i
         LEFT JOIN PendingPurchases pp
-            ON i.ID = pp.ProductID AND pp.Status = 'purchased'
+        ON i.ID = pp.ProductID AND pp.Status = 'purchased'
         WHERE i.StatusID != 4
-          AND i.Stock < i.MinimumStock
-          AND pp.ID IS NULL
+        AND pp.ID IS NULL
         GROUP BY i.Name
+        HAVING SUM(i.Stock) < MAX(i.MinimumStock)
         ORDER BY (MAX(i.MinimumStock) - SUM(i.Stock)) DESC
         """
     )
@@ -548,13 +548,14 @@ def reporte_stock_quincenal_pdf():
     devuelve 401.
     """
     # Auth: aceptar sesión normal O token compartido para n8n
+    # Auth: aceptar sesión normal O token en header para n8n
     import os
     api_token = os.environ.get("REPORTS_API_TOKEN", "")
-    provided_token = request.args.get("token", "")
+    token_header = request.headers.get("Authorization", "")
 
-    if "user" not in session and (not api_token or provided_token != api_token):
+    if "user" not in session and token_header != f"Bearer {api_token}":
         return jsonify({"error": "No autorizado"}), 401
-
+    
     try:
         # Parsear parámetros de fecha
         desde_str = request.args.get("desde")
