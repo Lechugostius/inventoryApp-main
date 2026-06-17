@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, jsonify, session, redirec
 from ..service.database.items_service import get_all_items, get_items_by_filters, get_item_by_id, update_item
 from ..service.database.category_service import get_all_categories
 from ..service.database.statuses_service import get_all_statuses
+from ..service.database.suppliers_service import get_all_suppliers  # <-- NUEVA IMPORTACIÓN
 
 inventory_bp = Blueprint('inventory', __name__)
 
@@ -46,7 +47,7 @@ def group_similar_items(items):
             group['serial_numbers'].append({
                 'id': item.get('ID'),
                 'serial': item.get('UniqueIdentifier'),
-                'stock': item.get('Stock', 0),  # ← NUEVA LÍNEA
+                'stock': item.get('Stock', 0),
                 'cost': item.get('UnitCost') or 0,
                 'date': item.get('RegistrationDate')
             })
@@ -91,10 +92,19 @@ def inventario():
         # Obtener datos para los filtros
         categories = get_all_categories() or []
         statuses = get_all_statuses() or []
-        
+        suppliers = get_all_suppliers() or []  # <-- NUEVO: obtener proveedores
+
         # Enriquecer con nombres de categorías y estados
         category_dict = {cat['ID']: cat['Name'] for cat in categories}
         status_dict = {stat['ID']: stat['Name'] for stat in statuses}
+        
+        # Construir diccionario de proveedores (maneja diccionarios o tuplas)
+        supplier_dict = {}
+        for s in suppliers:
+            if isinstance(s, dict):
+                supplier_dict[s.get('ID')] = s.get('Name')
+            elif isinstance(s, (list, tuple)) and len(s) >= 2:
+                supplier_dict[s[0]] = s[1]
         
         if view_mode == 'grouped':
             # Vista agrupada
@@ -128,7 +138,7 @@ def inventario():
                                  selected_status=status)
         
         else:
-            # Vista individual (original)
+            # Vista individual
             items_per_page = 10
             total_items = len(items)
             total_pages = max(1, (total_items + items_per_page - 1) // items_per_page)
@@ -136,10 +146,11 @@ def inventario():
             end_idx = start_idx + items_per_page
             paginated_items = items[start_idx:end_idx]
             
-            # Enriquecer items con nombres
+            # Enriquecer items con nombres de categoría, estado y proveedor
             for item in paginated_items:
                 item['CategoryName'] = category_dict.get(item.get('CategoryID'), 'Sin categoría')
                 item['StatusName'] = status_dict.get(item.get('StatusID'), 'Sin estado')
+                item['SupplierName'] = supplier_dict.get(item.get('SupplierID'), 'Sin proveedor')  # <-- NUEVO
 
             return render_template("inventario.html",
                                  user=user_info,
