@@ -118,18 +118,29 @@ async function cargarMovimientos() {
         const dataActual = await obtenerDatos(currentGranularidad, fecha);
         const p1 = currentPeriod ? getPeriodLabel(currentYear, currentPeriod) : String(currentYear);
 
-        // FIX 2: spanGaps true y pointRadius mayor para que las líneas aparezcan
-        // aunque haya pocos puntos
+        // Cuantos puntos tendra el grafico en total (considerando el dataset
+        // comparativo si esta activo). Con 1 o 2 puntos, una "linea" no
+        // aporta nada visualmente (es solo un punto o un segmento recto
+        // entre dos columnas separadas sin contexto). En ese caso usamos
+        // barras automaticamente, que comunican mejor con pocos datos.
+        // El usuario sigue pudiendo forzar manualmente Lineas/Barras cuando
+        // hay 3+ puntos.
+        const totalPuntos = dataActual.labels ? dataActual.labels.length : 0;
+        const pocosDatos = totalPuntos <= 2;
+        const tipoEfectivo = pocosDatos ? 'bar' : chartType;
+
         const mkDs = (label, data, color, dash) => ({
             label,
             data,
             borderColor: color,
-            backgroundColor: chartType === 'line' ? color + '20' : color + 'bb',
-            fill: chartType === 'line',
-            tension: 0.4,
-            pointRadius: chartType === 'line' ? 5 : 0,
+            backgroundColor: tipoEfectivo === 'line' ? color + '20' : color + 'cc',
+            fill: tipoEfectivo === 'line',
+            tension: 0.35,
+            pointRadius: tipoEfectivo === 'line' ? 5 : 0,
             pointHoverRadius: 7,
             borderWidth: 2,
+            borderRadius: tipoEfectivo === 'bar' ? 6 : 0,
+            maxBarThickness: 70,
             spanGaps: true,
             borderDash: dash || []
         });
@@ -154,7 +165,7 @@ async function cargarMovimientos() {
         if (movementsChart) movementsChart.destroy();
         const ctx = document.getElementById('movementsChart').getContext('2d');
         movementsChart = new Chart(ctx, {
-            type: chartType === 'bar' ? 'bar' : 'line',
+            type: tipoEfectivo,
             data: { labels: dataActual.labels, datasets },
             options: {
                 responsive: true,
@@ -173,6 +184,17 @@ async function cargarMovimientos() {
                 }
             }
         });
+
+        // Aviso visual breve si forzamos barras por falta de datos suficientes
+        const btnLine = document.getElementById('btnLine');
+        const btnBar  = document.getElementById('btnBar');
+        if (pocosDatos) {
+            btnLine.classList.add('disabled');
+            btnLine.title = 'Selecciona 3 o más periodos para ver el gráfico de líneas';
+        } else {
+            btnLine.classList.remove('disabled');
+            btnLine.title = '';
+        }
 
         const gran_map = { mes: 'Mensual', semana: 'Semanal', dia: 'Diario' };
         const titleEl = document.getElementById('chartTitle');
@@ -231,13 +253,11 @@ async function cargarAnios() {
     try {
         const data = await obtenerDatos('mes');
 
-        // Años de la BD
         let yearsFromDB = [...new Set(data.labels.map(l => {
             const m = l.match(/\d{4}/);
             return m ? parseInt(m[0]) : null;
         }).filter(Boolean))];
 
-        // FIX 1: Siempre incluir al menos el año actual y el anterior
         const currentYearNow = new Date().getFullYear();
         const fallbackYears = [currentYearNow, currentYearNow - 1];
         let years = [...new Set([...yearsFromDB, ...fallbackYears])].sort((a, b) => b - a);
@@ -248,25 +268,21 @@ async function cargarAnios() {
         cmpYearSel.innerHTML = years.map(y => `<option value="${y}">${y}</option>`).join('');
 
         currentYear  = years[0];
-        // FIX 1: compareYear siempre es un año diferente al principal
         compareYear  = years.find(y => y !== currentYear) || years[0];
         yearSel.value    = currentYear;
         cmpYearSel.value = compareYear;
 
-        // Chips principales
         generarChipsMeses(currentYear, 'periodChips', (p) => {
             currentPeriod = parseInt(p);
             if (currentGranularidad === 'semana') buildWeekChips(currentYear, currentPeriod - 1);
             cargarMovimientos();
         });
 
-        // Chips comparativo
         generarChipsMeses(compareYear, 'cmpMonthChips', (p) => {
             comparePeriod = parseInt(p);
             if (currentMode === 'compare') cargarMovimientos();
         });
 
-        // Eventos de año
         yearSel.onchange = () => {
             currentYear   = parseInt(yearSel.value);
             currentPeriod = null;

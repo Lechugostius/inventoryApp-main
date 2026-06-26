@@ -11,7 +11,7 @@
 </head>
 <body>
 <div class="container-fluid">
- 
+
     <!-- Header -->
     <div class="row mb-4 align-items-center">
         <div class="col-md-8">
@@ -28,7 +28,7 @@
             </button>
         </div>
     </div>
- 
+
     <!-- Estadísticas generales -->
     <div class="row g-4 mb-4">
         <div class="col-md-4">
@@ -65,10 +65,10 @@
             </div>
         </div>
     </div>
- 
+
     <!-- Gráficos -->
     <div class="row">
- 
+
         <!-- Gráfico circular -->
         <div class="col-md-6">
             <div class="card h-100">
@@ -82,7 +82,7 @@
                 </div>
             </div>
         </div>
- 
+
         <!-- Gráfico de movimientos -->
         <div class="col-md-6">
             <div class="card h-100">
@@ -91,7 +91,7 @@
                     <span id="chartTitle" class="small opacity-75">Cargando...</span>
                 </div>
                 <div class="card-body">
- 
+
                     <!-- Filtros -->
                     <div class="filtros-section mb-3">
                         <div class="row g-2 align-items-end mb-2">
@@ -124,16 +124,16 @@
                                 </div>
                             </div>
                         </div>
- 
+
                         <!-- Chips de período -->
                         <div id="periodChips" class="d-flex flex-wrap gap-1 mt-1"></div>
- 
+
                         <!-- Chips de semanas -->
                         <div id="weekChipsWrap" style="display:none;" class="mt-2">
                             <div class="week-chips-label">Semana</div>
                             <div id="weekChips" class="d-flex flex-wrap gap-1"></div>
                         </div>
- 
+
                         <!-- Comparativo -->
                         <div id="compareRow" class="mt-2 pt-2 border-top" style="display:none;">
                             <div class="row g-2">
@@ -148,23 +148,22 @@
                             </div>
                         </div>
                     </div>
- 
+
                     <!-- Leyenda -->
                     <div id="chartLegend" class="chart-legend"></div>
- 
-                    <!-- Canvas -->
-                    <div class="chart-container" style="padding:0;">
+
+                    <!-- Canvas: altura fija compacta porque ya hay filtros arriba -->
+                    <div class="chart-container-compact">
                         <canvas id="movementsChart"></canvas>
                     </div>
- 
+
                 </div>
             </div>
         </div>
- 
+
     </div>
 </div>
- 
+
 <script src="/static/js/informes.js"></script>
 </body>
 </html>
- 
